@@ -20,21 +20,42 @@
         "location": "post",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/mop-post"
+      },
+      {
+        "label": "⚖️ RedLex — Add Strike",
+        "description": "Log a guideline strike against this user.",
+        "location": "comment",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/add-strike-comment"
+      },
+      {
+        "label": "⚖️ RedLex — Add Strike",
+        "description": "Log a guideline strike against this user.",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/add-strike-post"
       }
     ]
   },
   "forms": {
     "mopComment": "/internal/form/mop-comment-submit",
-    "mopPost": "/internal/form/mop-post-submit"
+    "mopPost": "/internal/form/mop-post-submit",
+    "addStrikeComment": "/internal/form/add-strike-submit",
+    "addStrikePost": "/internal/form/add-strike-submit"
   },
   "triggers": {
-    "onAppInstall": "/internal/triggers/on-app-install"
+    "onAppInstall": "/internal/triggers/on-app-install",
+    "onModAction": "/internal/triggers/on-mod-action"
   },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
   },
   "permissions": {
-    "reddit": true
+    "reddit": true,
+    "redis": true
+  },
+  "dev": {
+    "subreddit": "redlex_mod_dev"
   }
 }
