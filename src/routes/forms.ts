@@ -112,3 +112,59 @@ forms.post('/mop-post-submit', async (c) => {
     200
   );
 });
+// RedLex - Strike form submission
+type StrikeFormValues = {
+  username?: string;
+  rule?: string;
+  reason?: string;
+  severity?: 'warning' | 'minor' | 'major';
+  postUrl?: string;
+};
+
+forms.post('/add-strike-submit', async (c) => {
+  const values = await c.req.json<StrikeFormValues>();
+
+  if (!values.username || !values.rule || !values.reason || !values.severity) {
+    return c.json<UiResponse>(
+      {
+        showToast: '❌ Please fill in all required fields.',
+      },
+      200
+    );
+  }
+
+  try {
+    const response = await fetch('/api/strikes/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: values.username.replace(/^u\//, ''),
+        rule: values.rule,
+        reason: values.reason,
+        severity: values.severity,
+        postUrl: values.postUrl ?? '',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      return c.json<UiResponse>(
+        {
+          showToast: `✅ Strike logged for u/${values.username}`,
+        },
+        200
+      );
+    } else {
+      throw new Error('API returned failure');
+    }
+  } catch (err) {
+    console.error('Strike submission error:', err);
+    return c.json<UiResponse>(
+      {
+        showToast: '❌ Failed to log strike. Please try again.',
+      },
+      200
+    );
+  }
+});

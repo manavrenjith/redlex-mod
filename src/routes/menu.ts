@@ -66,3 +66,122 @@ menu.post('/mop-post', async (c) => {
     200
   );
 });
+// RedLex - Add Strike menu item on comments
+menu.post('/add-strike-comment', async (c) => {
+  const request = await c.req.json<MenuItemRequest>();
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'addStrikeComment',
+        form: {
+          title: '⚖️ RedLex — Add Strike',
+          acceptLabel: 'Add Strike',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'username',
+              label: 'Username',
+              type: 'string',
+              required: true,
+              helpText: 'Reddit username of the offender (without u/)',
+            },
+            {
+              name: 'rule',
+              label: 'Rule Violated',
+              type: 'string',
+              required: true,
+              helpText: 'e.g. Rule 1, Rule 3, No spam',
+            },
+            {
+              name: 'reason',
+              label: 'Details',
+              type: 'string',
+              required: true,
+              helpText: 'Brief description of what they did',
+            },
+            {
+              name: 'severity',
+              label: 'Severity',
+              type: 'select',
+              options: [
+                { label: '⚠️ Warning', value: 'warning' },
+                { label: '🟡 Minor', value: 'minor' },
+                { label: '🔴 Major', value: 'major' },
+              ],
+              required: true,
+            },
+            {
+              name: 'postUrl',
+              label: 'Post URL (optional)',
+              type: 'string',
+              required: false,
+              helpText: 'Link to the offending post or comment',
+              defaultValue: request.targetId,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+// RedLex - Add Strike menu item on posts
+menu.post('/add-strike-post', async (c) => {
+  const request = await c.req.json<MenuItemRequest>();
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'addStrikePost',
+        form: {
+          title: '⚖️ RedLex — Add Strike',
+          acceptLabel: 'Add Strike',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'username',
+              label: 'Username',
+              type: 'string',
+              required: true,
+              helpText: 'Reddit username of the offender (without u/)',
+            },
+            {
+              name: 'rule',
+              label: 'Rule Violated',
+              type: 'string',
+              required: true,
+              helpText: 'e.g. Rule 1, Rule 3, No spam',
+            },
+            {
+              name: 'reason',
+              label: 'Details',
+              type: 'string',
+              required: true,
+              helpText: 'Brief description of what they did',
+            },
+            {
+              name: 'severity',
+              label: 'Severity',
+              type: 'select',
+              options: [
+                { label: '⚠️ Warning', value: 'warning' },
+                { label: '🟡 Minor', value: 'minor' },
+                { label: '🔴 Major', value: 'major' },
+              ],
+              required: true,
+            },
+            {
+              name: 'postUrl',
+              label: 'Post URL (optional)',
+              type: 'string',
+              required: false,
+              helpText: 'Link to the offending post or comment',
+              defaultValue: request.targetId,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
