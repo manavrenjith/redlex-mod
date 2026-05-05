@@ -5,6 +5,13 @@
     "dir": "dist/server",
     "entry": "index.cjs"
   },
+  "post": {
+    "entrypoints": {
+      "default": {
+        "client": "src/client/index.html"
+      }
+    }
+  },
   "menu": {
     "items": [
       {
@@ -56,7 +63,8 @@
     "mopPost": "/internal/form/mop-post-submit",
     "addStrikeComment": "/internal/form/add-strike-submit",
     "addStrikePost": "/internal/form/add-strike-submit",
-    "viewStrikes": "/internal/form/view-strikes-submit"
+    "viewStrikes": "/internal/form/view-strikes-submit",
+    "createRedlexPost": "/internal/form/create-redlex-post-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

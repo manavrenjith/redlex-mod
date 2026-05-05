@@ -142,3 +142,20 @@ forms.post('/view-strikes-submit', async (c) => {
     200
   );
 });
+forms.post('/create-redlex-post-submit', async (c) => {
+  const values = await c.req.json<{ title?: string }>();
+  const title = values.title ?? '⚖️ RedLex — Mod Strike Dashboard';
+
+  try {
+    const sub = await reddit.getCurrentSubreddit();
+    await reddit.submitPost({
+      subredditName: sub.name,
+      title,
+      kind: 'custom',
+    });
+    return c.json<UiResponse>({ showToast: '✅ RedLex dashboard post created!' }, 200);
+  } catch (err) {
+    console.error('Create post error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to create post.' }, 200);
+  }
+});

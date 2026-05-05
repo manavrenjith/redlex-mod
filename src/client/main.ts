@@ -1,3 +1,5 @@
+import '@devvit/web-view-scripts/scripts/devvit.v1.min.js';
+import { context } from '@devvit/web/client';
 const input = document.getElementById('usernameInput') as HTMLInputElement;
 const btn = document.getElementById('lookupBtn') as HTMLButtonElement;
 const results = document.getElementById('results') as HTMLDivElement;
