@@ -185,3 +185,29 @@ menu.post('/add-strike-post', async (c) => {
     200
   );
 });
+menu.post('/view-strikes', async (c) => {
+  const request = await c.req.json<MenuItemRequest>();
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'viewStrikes',
+        form: {
+          title: '🔍 RedLex — View Strikes',
+          acceptLabel: 'Look Up',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'username',
+              label: 'Username to look up',
+              type: 'string',
+              required: true,
+              helpText: 'Enter the Reddit username (without u/)',
+              defaultValue: '',
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});

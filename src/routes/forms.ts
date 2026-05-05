@@ -112,10 +112,33 @@ forms.post('/add-strike-submit', async (c) => {
 
     strikes.push(strike);
     await redis.set(key, JSON.stringify(strikes));
-
+    console.log(`✅ Strike saved for u/${username} — total strikes: ${strikes.length}`);
     return c.json<UiResponse>({ showToast: `✅ Strike logged for u/${username}` }, 200);
   } catch (err) {
     console.error('Strike submission error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to log strike. Please try again.' }, 200);
   }
+});
+forms.post('/view-strikes-submit', async (c) => {
+  const values = await c.req.json<{ username?: string }>();
+  const username = (values.username ?? '').replace(/^u\//, '').toLowerCase();
+  const key = `strikes:${username}`;
+  const existing = await redis.get(key);
+  const strikes = existing ? JSON.parse(existing) : [];
+
+  if (strikes.length === 0) {
+    return c.json<UiResponse>(
+      { showToast: `✅ u/${username} has no strikes.` },
+      200
+    );
+  }
+
+  const summary = strikes
+    .map((s: any, i: number) => `${i + 1}. [${s.severity}] ${s.rule} — ${s.reason} (by u/${s.modName})`)
+    .join('\n');
+
+  return c.json<UiResponse>(
+    { showToast: `⚖️ u/${username} has ${strikes.length} strike(s):\n${summary}` },
+    200
+  );
 });

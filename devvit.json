@@ -34,14 +34,22 @@
         "location": "post",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/add-strike-post"
-      }
+      },
+      {
+        "label": "🔍 RedLex — View Strikes",
+        "description": "View strike history for a user.",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/view-strikes"
+}
     ]
   },
   "forms": {
     "mopComment": "/internal/form/mop-comment-submit",
     "mopPost": "/internal/form/mop-post-submit",
     "addStrikeComment": "/internal/form/add-strike-submit",
-    "addStrikePost": "/internal/form/add-strike-submit"
+    "addStrikePost": "/internal/form/add-strike-submit",
+    "viewStrikes": "/internal/form/view-strikes-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
@@ -58,4 +66,5 @@
   "dev": {
     "subreddit": "redlex_mod_dev"
   }
+  
 }
