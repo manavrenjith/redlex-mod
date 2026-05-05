@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RedLex Strike Viewer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #1a1a1b;
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    header h1 { font-size: 20px; color: #ff4500; }
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #272729;
+      color: #fff;
+      font-size: 15px;
+    }
+    button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      background: #ff4500;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty {
+      padding: 20px;
+      background: #272729;
+      border-radius: 8px;
+      text-align: center;
+      color: #888;
+    }
+    .user-header {
+      padding: 10px 16px;
+      background: #272729;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 13px;
+      color: #fff;
+    }
+    .strike-card {
+      background: #272729;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .strike-card.major { border-left: 4px solid #ff4444; }
+    .strike-card.minor { border-left: 4px solid #ffaa00; }
+    .strike-card.warning { border-left: 4px solid #aaaaaa; }
+    .strike-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .strike-rule { font-weight: bold; }
+    .strike-date { font-size: 12px; color: #888; }
+    .strike-reason { color: #ccc; margin-bottom: 6px; }
+    .strike-meta { font-size: 12px; color: #888; }
+    .strike-meta a { color: #ff4500; }
+  </style>
+</head>
+<body>
+  <header>
+    <span>⚖️</span>
+    <h1>RedLex Strike Viewer</h1>
+  </header>
+  <div class="search-bar">
+    <input id="usernameInput" placeholder="Enter username..." />
+    <button id="lookupBtn">Look Up</button>
+  </div>
+  <div id="results"></div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
