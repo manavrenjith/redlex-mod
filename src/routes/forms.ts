@@ -122,6 +122,9 @@ forms.post('/add-strike-submit', async (c) => {
 forms.post('/view-strikes-submit', async (c) => {
   const values = await c.req.json<{ username?: string }>();
   const username = (values.username ?? '').replace(/^u\//, '').toLowerCase();
+  if (!username) {
+    return c.json<UiResponse>({ showToast: '❌ Please enter a username.' }, 200);
+  }
   const key = `strikes:${username}`;
   const existing = await redis.get(key);
   const strikes = existing ? JSON.parse(existing) : [];
@@ -149,10 +152,10 @@ forms.post('/create-redlex-post-submit', async (c) => {
   try {
     const sub = await reddit.getCurrentSubreddit();
     await reddit.submitPost({
-      subredditName: sub.name,
-      title,
-      kind: 'custom',
-    });
+  subredditName: sub.name,
+  title,
+  text: '⚖️ This is the RedLex Strike Dashboard. Use mod actions to look up user strikes.',
+});
     return c.json<UiResponse>({ showToast: '✅ RedLex dashboard post created!' }, 200);
   } catch (err) {
     console.error('Create post error:', err);

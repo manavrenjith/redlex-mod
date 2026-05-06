@@ -14,3 +14,8 @@ triggers.post('/on-app-install', async (c) => {
     200
   );
 });
+
+triggers.post('/on-mod-action', async (c) => {
+  await c.req.json();
+  return c.json<TriggerResponse>({ status: 'success' }, 200);
+});
