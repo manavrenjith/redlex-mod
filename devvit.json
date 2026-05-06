@@ -5,13 +5,7 @@
     "dir": "dist/server",
     "entry": "index.cjs"
   },
-  "post": {
-    "entrypoints": {
-      "default": {
-        "client": "src/client/index.html"
-      }
-    }
-  },
+
   "menu": {
     "items": [
       {
@@ -20,6 +14,7 @@
         "location": "comment",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/mop-comment"
+        
       },
       {
         "label": "Mop post comments",
@@ -64,7 +59,8 @@
     "addStrikeComment": "/internal/form/add-strike-submit",
     "addStrikePost": "/internal/form/add-strike-submit",
     "viewStrikes": "/internal/form/view-strikes-submit",
-    "createRedlexPost": "/internal/form/create-redlex-post-submit"
+    "createRedlexPost": "/internal/form/create-redlex-post-submit",
+    "viewStrikesResult": "/internal/form/view-strikes-result-noop"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

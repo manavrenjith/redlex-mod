@@ -15,11 +15,41 @@ type StrikeFormValues = {
   username?: string;
   rule?: string;
   reason?: string;
-  severity?: 'warning' | 'minor' | 'major';
+  severity?: 'warning' | 'minor' | 'major' | string[];
   postUrl?: string;
 };
 
 export const forms = new Hono();
+
+const normalizeSeverityInput = (
+  severity: unknown
+): 'warning' | 'minor' | 'major' | null => {
+  const raw = Array.isArray(severity) ? severity[0] : severity;
+  if (typeof raw !== 'string') {
+    return null;
+  }
+
+  const normalized = raw.toLowerCase();
+  if (normalized === 'warning' || normalized === 'minor' || normalized === 'major') {
+    return normalized;
+  }
+
+  return null;
+};
+
+const formatSeverityLabel = (severity: unknown): string => {
+  const normalized = normalizeSeverityInput(severity);
+  if (normalized) {
+    return normalized.toUpperCase();
+  }
+
+  const raw = Array.isArray(severity) ? severity[0] : severity;
+  if (typeof raw === 'string' && raw.trim()) {
+    return raw.toUpperCase();
+  }
+
+  return 'UNKNOWN';
+};
 
 const normalizeValues = (values: NukeFormValues) => ({
   remove: Boolean(values.remove),
@@ -91,6 +121,11 @@ forms.post('/add-strike-submit', async (c) => {
     return c.json<UiResponse>({ showToast: '❌ Please fill in all required fields.' }, 200);
   }
 
+  const normalizedSeverity = normalizeSeverityInput(values.severity);
+  if (!normalizedSeverity) {
+    return c.json<UiResponse>({ showToast: '❌ Please select a valid severity.' }, 200);
+  }
+
   try {
     const username = values.username.replace(/^u\//, '').toLowerCase();
     const key = `strikes:${username}`;
@@ -104,7 +139,7 @@ forms.post('/add-strike-submit', async (c) => {
       username,
       rule: values.rule,
       reason: values.reason,
-      severity: values.severity,
+      severity: normalizedSeverity,
       postUrl: values.postUrl ?? '',
       modName: mod?.username ?? 'unknown',
       createdAt: new Date().toISOString(),
@@ -122,26 +157,65 @@ forms.post('/add-strike-submit', async (c) => {
 forms.post('/view-strikes-submit', async (c) => {
   const values = await c.req.json<{ username?: string }>();
   const username = (values.username ?? '').replace(/^u\//, '').toLowerCase();
+  
   if (!username) {
     return c.json<UiResponse>({ showToast: '❌ Please enter a username.' }, 200);
   }
+
   const key = `strikes:${username}`;
   const existing = await redis.get(key);
   const strikes = existing ? JSON.parse(existing) : [];
 
   if (strikes.length === 0) {
     return c.json<UiResponse>(
-      { showToast: `✅ u/${username} has no strikes.` },
+      {
+        showForm: {
+          name: 'viewStrikesResult',
+          form: {
+            title: `⚖️ u/${username} — Strike Record`,
+            acceptLabel: 'Close',
+            fields: [
+              {
+                name: 'result',
+                label: 'Strike History',
+                type: 'paragraph',
+                defaultValue: '✅ No strikes on record.',
+              },
+            ],
+          },
+        },
+      },
       200
     );
   }
 
-  const summary = strikes
-    .map((s: any, i: number) => `${i + 1}. [${s.severity}] ${s.rule} — ${s.reason} (by u/${s.modName})`)
-    .join('\n');
+  const lines = strikes
+    .map(
+      (s: any, i: number) =>
+        `${i + 1}. [${formatSeverityLabel(s.severity)}] ${s.rule}\n   ${s.reason}\n   By u/${s.modName} on ${new Date(s.createdAt).toLocaleDateString()}`
+    )
+    .join('\n\n');
+
+  const summary = `${strikes.length} strike(s) on record:\n\n${lines}`;
 
   return c.json<UiResponse>(
-    { showToast: `⚖️ u/${username} has ${strikes.length} strike(s):\n${summary}` },
+    {
+      showForm: {
+        name: 'viewStrikesResult',
+        form: {
+          title: `⚖️ u/${username} — Strike Record`,
+          acceptLabel: 'Close',
+          fields: [
+            {
+              name: 'result',
+              label: 'Strike History',
+              type: 'paragraph',
+              defaultValue: summary,
+            },
+          ],
+        },
+      },
+    },
     200
   );
 });
@@ -161,4 +235,8 @@ forms.post('/create-redlex-post-submit', async (c) => {
     console.error('Create post error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to create post.' }, 200);
   }
+});
+
+forms.post('/view-strikes-result-noop', async (c) => {
+  return c.json<UiResponse>({ showToast: '' }, 200);
 });
