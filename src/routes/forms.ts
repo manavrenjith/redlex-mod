@@ -240,3 +240,136 @@ forms.post('/create-redlex-post-submit', async (c) => {
 forms.post('/view-strikes-result-noop', async (c) => {
   return c.json<UiResponse>({ showToast: '' }, 200);
 });
+
+forms.post('/add-shift-note-submit', async (c) => {
+  const values = await c.req.json<{ text?: string; priority?: string | string[] }>();
+  const text = (values.text ?? '').trim();
+
+  if (!text) {
+    return c.json<UiResponse>({ showToast: '❌ Please enter a note' }, 200);
+  }
+
+  const rawPriority = Array.isArray(values.priority)
+    ? values.priority[0]
+    : values.priority;
+  const priority = rawPriority === 'urgent' ? 'urgent' : 'normal';
+
+  try {
+    const [subreddit, user] = await Promise.all([
+      reddit.getCurrentSubreddit(),
+      reddit.getCurrentUser(),
+    ]);
+    const key = `shiftNotes:${subreddit.name}`;
+
+    const existing = await redis.get(key);
+    const notes = existing ? JSON.parse(existing) : [];
+
+    const note = {
+      id: crypto.randomUUID(),
+      text,
+      modName: user?.username ?? 'unknown',
+      createdAt: new Date().toISOString(),
+      resolved: false,
+      priority,
+    };
+
+    notes.push(note);
+    await redis.set(key, JSON.stringify(notes));
+
+    return c.json<UiResponse>({ showToast: '✅ Shift note added' }, 200);
+  } catch (err) {
+    console.error('Shift note submission error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to save note' }, 200);
+  }
+});
+
+forms.post('/view-shift-notes-submit', async (c) => {
+  try {
+    const subreddit = await reddit.getCurrentSubreddit();
+    const key = `shiftNotes:${subreddit.name}`;
+
+    const existing = await redis.get(key);
+    const notes = existing ? JSON.parse(existing) : [];
+
+    const activeNotes = notes
+      .filter((note: any) => note && note.resolved === false)
+      .sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+    const summary =
+      activeNotes.length === 0
+        ? '✅ No active shift notes'
+        : activeNotes
+            .map((note: any) => {
+              const priority = note.priority === 'urgent' ? 'URGENT' : 'NORMAL';
+              const icon = priority === 'URGENT' ? '🔴' : '📌';
+              const date = note.createdAt
+                ? new Date(note.createdAt).toLocaleDateString()
+                : 'Unknown date';
+              const modName = note.modName ? `u/${note.modName}` : 'unknown mod';
+              const text = note.text ?? '';
+              return `${icon} [${priority}] ${text} — ${modName} on ${date}`;
+            })
+            .join('\n\n');
+
+    return c.json<UiResponse>(
+      {
+        showForm: {
+          name: 'viewShiftNotesResult',
+          form: {
+            title: '📋 View Shift Notes',
+            acceptLabel: 'Close',
+            fields: [
+              {
+                name: 'result',
+                label: 'Shift Notes',
+                type: 'paragraph',
+                defaultValue: summary,
+              },
+            ],
+          },
+        },
+      },
+      200
+    );
+  } catch (err) {
+    console.error('View shift notes error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to load notes' }, 200);
+  }
+});
+
+forms.post('/view-shift-notes-result-noop', async (c) => {
+  return c.json<UiResponse>({ showToast: '' }, 200);
+});
+
+forms.post('/resolve-shift-note-submit', async (c) => {
+  const values = await c.req.json<{ noteId?: string }>();
+  const noteId = (values.noteId ?? '').trim();
+
+  if (!noteId) {
+    return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
+  }
+
+  try {
+    const subreddit = await reddit.getCurrentSubreddit();
+    const key = `shiftNotes:${subreddit.name}`;
+
+    const existing = await redis.get(key);
+    const notes = existing ? JSON.parse(existing) : [];
+
+    const match = notes.find((note: any) => note && note.id === noteId);
+    if (!match) {
+      return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
+    }
+
+    match.resolved = true;
+    await redis.set(key, JSON.stringify(notes));
+
+    return c.json<UiResponse>({ showToast: '✅ Note resolved' }, 200);
+  } catch (err) {
+    console.error('Resolve shift note error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
+  }
+});

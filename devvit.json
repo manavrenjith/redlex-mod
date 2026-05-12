@@ -50,7 +50,25 @@
   "location": "subreddit",
   "forUserType": "moderator",
   "endpoint": "/internal/menu/create-redlex-post"
-}
+},
+      {
+        "label": "📋 Add Shift Note",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/add-shift-note"
+      },
+      {
+        "label": "📋 View Shift Notes",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/view-shift-notes"
+      },
+      {
+        "label": "✅ Resolve Shift Note",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/resolve-shift-note"
+      }
     ]
   },
   "forms": {
@@ -60,7 +78,11 @@
     "addStrikePost": "/internal/form/add-strike-submit",
     "viewStrikes": "/internal/form/view-strikes-submit",
     "createRedlexPost": "/internal/form/create-redlex-post-submit",
-    "viewStrikesResult": "/internal/form/view-strikes-result-noop"
+    "viewStrikesResult": "/internal/form/view-strikes-result-noop",
+    "addShiftNote": "/internal/form/add-shift-note-submit",
+    "viewShiftNotes": "/internal/form/view-shift-notes-submit",
+    "viewShiftNotesResult": "/internal/form/view-shift-notes-result-noop",
+    "resolveShiftNote": "/internal/form/resolve-shift-note-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

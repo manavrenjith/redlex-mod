@@ -235,3 +235,87 @@ menu.post('/create-redlex-post', async (c) => {
     200
   );
 });
+
+menu.post('/internal/menu/add-shift-note', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'addShiftNote',
+        form: {
+          title: '📋 Add Shift Note',
+          acceptLabel: 'Add Note',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'note',
+              label: 'Note',
+              type: 'string',
+              required: true,
+              helpText: 'What should the next mod know?',
+            },
+            {
+              name: 'priority',
+              label: 'Priority',
+              type: 'select',
+              required: true,
+              options: [
+                { label: 'Normal', value: 'normal' },
+                { label: 'Urgent', value: 'urgent' },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+menu.post('/internal/menu/view-shift-notes', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'viewShiftNotes',
+        form: {
+          title: '📋 View Shift Notes',
+          acceptLabel: 'View',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'confirm',
+              label: 'Load notes',
+              type: 'string',
+              defaultValue: 'yes',
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+menu.post('/internal/menu/resolve-shift-note', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'resolveShiftNote',
+        form: {
+          title: '✅ Resolve Shift Note',
+          acceptLabel: 'Resolve',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'noteId',
+              label: 'Note ID',
+              type: 'string',
+              required: true,
+              helpText: 'Enter the ID of the note to resolve',
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
