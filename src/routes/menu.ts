@@ -236,7 +236,7 @@ menu.post('/create-redlex-post', async (c) => {
   );
 });
 
-menu.post('/internal/menu/add-shift-note', async (c) => {
+menu.post('/add-shift-note', async (c) => {
   return c.json<UiResponse>(
     {
       showForm: {
@@ -247,9 +247,9 @@ menu.post('/internal/menu/add-shift-note', async (c) => {
           cancelLabel: 'Cancel',
           fields: [
             {
-              name: 'note',
+              name: 'text',
               label: 'Note',
-              type: 'string',
+              type: 'paragraph',
               required: true,
               helpText: 'What should the next mod know?',
             },
@@ -257,11 +257,11 @@ menu.post('/internal/menu/add-shift-note', async (c) => {
               name: 'priority',
               label: 'Priority',
               type: 'select',
-              required: true,
               options: [
-                { label: 'Normal', value: 'normal' },
-                { label: 'Urgent', value: 'urgent' },
+                { label: '📌 Normal', value: 'normal' },
+                { label: '🔴 Urgent', value: 'urgent' },
               ],
+              required: true,
             },
           ],
         },
@@ -271,7 +271,7 @@ menu.post('/internal/menu/add-shift-note', async (c) => {
   );
 });
 
-menu.post('/internal/menu/view-shift-notes', async (c) => {
+menu.post('/view-shift-notes', async (c) => {
   return c.json<UiResponse>(
     {
       showForm: {
@@ -295,7 +295,7 @@ menu.post('/internal/menu/view-shift-notes', async (c) => {
   );
 });
 
-menu.post('/internal/menu/resolve-shift-note', async (c) => {
+menu.post('/resolve-shift-note', async (c) => {
   return c.json<UiResponse>(
     {
       showForm: {
