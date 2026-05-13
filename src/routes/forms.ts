@@ -189,14 +189,22 @@ forms.post('/view-strikes-submit', async (c) => {
     );
   }
 
-  const lines = strikes
-    .map(
-      (s: any, i: number) =>
-        `${i + 1}. [${formatSeverityLabel(s.severity)}] ${s.rule}\n   ${s.reason}\n   By u/${s.modName} on ${new Date(s.createdAt).toLocaleDateString()}`
-    )
-    .join('\n\n');
+  const strikeFields = strikes.map((s: any, i: number) => {
+    const rawSeverity = Array.isArray(s.severity) ? s.severity[0] : s.severity;
+    const severityLabel = typeof rawSeverity === 'string' ? rawSeverity : 'UNKNOWN';
+    const date = s.createdAt
+      ? new Date(s.createdAt).toLocaleDateString()
+      : 'Unknown date';
+    const modName = s.modName ? `u/${s.modName}` : 'unknown';
+    const reason = s.reason ?? '';
 
-  const summary = `${strikes.length} strike(s) on record:\n\n${lines}`;
+    return {
+      name: `strike_${i}`,
+      type: 'paragraph',
+      label: `Strike ${i + 1} — [${severityLabel}] ${s.rule}`,
+      defaultValue: `${reason}\nBy ${modName} on ${date}`,
+    };
+  });
 
   return c.json<UiResponse>(
     {
@@ -205,14 +213,7 @@ forms.post('/view-strikes-submit', async (c) => {
         form: {
           title: `⚖️ u/${username} — Strike Record`,
           acceptLabel: 'Close',
-          fields: [
-            {
-              name: 'result',
-              label: 'Strike History',
-              type: 'paragraph',
-              defaultValue: summary,
-            },
-          ],
+          fields: strikeFields,
         },
       },
     },
