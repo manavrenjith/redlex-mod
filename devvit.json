@@ -45,6 +45,13 @@
         "endpoint": "/internal/menu/view-strikes"
       },
       {
+        "label": "🔍 RedLex — View Strikes",
+        "description": "Look up strike history for any user.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/view-strikes"
+      },
+      {
   "label": "⚖️ Create RedLex Dashboard",
   "description": "Create a RedLex strike viewer post in this subreddit.",
   "location": "subreddit",
