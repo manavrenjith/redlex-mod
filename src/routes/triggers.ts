@@ -4,6 +4,7 @@ import type {
   OnModActionRequest,
   TriggerResponse,
 } from '@devvit/web/shared';
+import type { T3 } from '@devvit/shared-types/tid.js';
 import { reddit, redis } from '@devvit/web/server';
 import { getLogEntries, saveLogEntry } from '../routes/api';
 
@@ -109,7 +110,7 @@ triggers.post('/on-mod-action', async (c) => {
         'This log is maintained automatically by RedLex.',
       ].join('\n');
 
-      const post = await reddit.getPostById(logPostId);
+      const post = await reddit.getPostById(logPostId as T3);
       await post.edit({ text: body });
     }
   }
