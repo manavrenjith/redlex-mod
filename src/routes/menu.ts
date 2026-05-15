@@ -236,6 +236,31 @@ menu.post('/create-redlex-post', async (c) => {
   );
 });
 
+menu.post('/create-log-post', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'createLogPost',
+        form: {
+          title: '📋 Create Transparency Log Post',
+          acceptLabel: 'Create',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'title',
+              label: 'Post Title',
+              type: 'string',
+              required: true,
+              defaultValue: '📋 RedLex — Mod Action Log',
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
 menu.post('/add-shift-note', async (c) => {
   return c.json<UiResponse>(
     {
