@@ -14,6 +14,34 @@ export type Strike = {
   postUrl?: string;
 };
 
+export type LogEntry = {
+  id: string;
+  action: string;
+  rule?: string;
+  createdAt: string;
+};
+
+export async function saveLogEntry(
+  subredditName: string,
+  entry: LogEntry
+): Promise<void> {
+  const key = `transparencyLog:${subredditName}`;
+  const existing = await redis.get(key);
+  const entries: LogEntry[] = existing ? JSON.parse(existing) : [];
+  entries.push(entry);
+
+  const trimmed = entries.length > 30 ? entries.slice(-30) : entries;
+  await redis.set(key, JSON.stringify(trimmed));
+}
+
+export async function getLogEntries(
+  subredditName: string
+): Promise<LogEntry[]> {
+  const key = `transparencyLog:${subredditName}`;
+  const existing = await redis.get(key);
+  return existing ? (JSON.parse(existing) as LogEntry[]) : [];
+}
+
 // Save a new strike
 api.post('/strikes/add', async (c) => {
   const body = await c.req.json<Omit<Strike, 'id' | 'createdAt' | 'modName'>>();
