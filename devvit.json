@@ -75,6 +75,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/resolve-shift-note"
+      },
+      {
+        "label": "📋 Create Transparency Log Post",
+        "description": "Create a public mod action log post in this subreddit.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/create-log-post"
       }
     ]
   },
@@ -89,7 +96,8 @@
     "addShiftNote": "/internal/form/add-shift-note-submit",
     "viewShiftNotes": "/internal/form/view-shift-notes-submit",
     "viewShiftNotesResult": "/internal/form/view-shift-notes-result-noop",
-    "resolveShiftNote": "/internal/form/resolve-shift-note-submit"
+    "resolveShiftNote": "/internal/form/resolve-shift-note-submit",
+    "createLogPost": "/internal/form/create-log-post-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
