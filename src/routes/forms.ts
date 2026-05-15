@@ -374,3 +374,25 @@ forms.post('/resolve-shift-note-submit', async (c) => {
     return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
   }
 });
+
+forms.post('/create-log-post-submit', async (c) => {
+  const values = await c.req.json<{ title?: string }>();
+  const title = values.title ?? '📋 RedLex — Mod Action Log';
+
+  try {
+    const subreddit = await reddit.getCurrentSubreddit();
+    const post = await reddit.submitPost({
+      subredditName: subreddit.name,
+      title,
+      text: '📋 This log is maintained automatically by RedLex.\nNo actions logged yet.',
+    });
+
+    const key = `logPostId:${subreddit.name}`;
+    await redis.set(key, post.id);
+
+    return c.json<UiResponse>({ showToast: '✅ Transparency log post created!' }, 200);
+  } catch (err) {
+    console.error('Create log post error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to create log post.' }, 200);
+  }
+});
