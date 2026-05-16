@@ -2,11 +2,18 @@ import { Hono } from 'hono';
 import type {
   OnAppInstallRequest,
   OnModActionRequest,
+  OnPostSubmitRequest,
   TriggerResponse,
 } from '@devvit/web/shared';
 import type { T3 } from '@devvit/shared-types/tid.js';
 import { reddit, redis } from '@devvit/web/server';
-import { getLogEntries, saveLogEntry } from '../routes/api';
+import {
+  getCelebratedMilestones,
+  getLogEntries,
+  getMilestoneSettings,
+  saveCelebratedMilestone,
+  saveLogEntry,
+} from '../routes/api';
 
 export const triggers = new Hono();
 
@@ -113,6 +120,56 @@ triggers.post('/on-mod-action', async (c) => {
       const post = await reddit.getPostById(logPostId as T3);
       await post.edit({ text: body });
     }
+  }
+
+  return c.json<TriggerResponse>({ status: 'success' }, 200);
+});
+
+triggers.post('/on-post-submit', async (c) => {
+  const input = await c.req.json<OnPostSubmitRequest>();
+  const subredditName = input.subreddit?.name;
+
+  if (!subredditName) {
+    return c.json<TriggerResponse>({ status: 'success' }, 200);
+  }
+
+  const settings = await getMilestoneSettings(subredditName);
+  if (!settings.enabled) {
+    return c.json<TriggerResponse>({ status: 'success' }, 200);
+  }
+
+  const sub = await reddit.getSubredditByName(subredditName);
+  const count = sub.numberOfSubscribers;
+
+  const celebrated = await getCelebratedMilestones(subredditName);
+  const celebratedCounts = new Set(
+    celebrated
+      .filter((milestone) => milestone.type === 'subscribers')
+      .map((milestone) => milestone.count)
+  );
+
+  const eligibleMilestones = settings.subscriberMilestones
+    .filter((milestone) => milestone <= count && !celebratedCounts.has(milestone))
+    .sort((a, b) => b - a);
+
+  const milestoneCount = eligibleMilestones[0];
+  if (milestoneCount !== undefined) {
+    const formattedCount = milestoneCount.toLocaleString();
+    const title = settings.postTitle.replace('{count}', formattedCount);
+    const body = settings.postBody.replace('{count}', formattedCount);
+
+    await reddit.submitPost({
+      subredditName,
+      title,
+      text: body,
+    });
+
+    await saveCelebratedMilestone(subredditName, {
+      id: crypto.randomUUID(),
+      type: 'subscribers',
+      count: milestoneCount,
+      celebratedAt: new Date().toISOString(),
+    });
   }
 
   return c.json<TriggerResponse>({ status: 'success' }, 200);

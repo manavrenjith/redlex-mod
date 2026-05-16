@@ -21,6 +21,68 @@ export type LogEntry = {
   createdAt: string;
 };
 
+export type MilestoneSettings = {
+  enabled: boolean;
+  subscriberMilestones: number[];
+  postTitle: string;
+  postBody: string;
+};
+
+export type CelebratedMilestone = {
+  id: string;
+  type: 'subscribers';
+  count: number;
+  celebratedAt: string;
+};
+
+export async function getMilestoneSettings(
+  subredditName: string
+): Promise<MilestoneSettings> {
+  const key = `milestoneSettings:${subredditName}`;
+  const existing = await redis.get(key);
+
+  if (existing) {
+    return JSON.parse(existing) as MilestoneSettings;
+  }
+
+  return {
+    enabled: true,
+    subscriberMilestones: [100, 500, 1000, 5000, 10000, 50000, 100000],
+    postTitle: '🎉 We just hit {count} members!',
+    postBody:
+      "Thank you to every member of our community for helping us reach this milestone. Here's to the next one! 🚀\n\n— The Mod Team",
+  };
+}
+
+export async function saveMilestoneSettings(
+  subredditName: string,
+  settings: MilestoneSettings
+): Promise<void> {
+  const key = `milestoneSettings:${subredditName}`;
+  await redis.set(key, JSON.stringify(settings));
+}
+
+export async function getCelebratedMilestones(
+  subredditName: string
+): Promise<CelebratedMilestone[]> {
+  const key = `milestones:${subredditName}`;
+  const existing = await redis.get(key);
+  return existing ? (JSON.parse(existing) as CelebratedMilestone[]) : [];
+}
+
+export async function saveCelebratedMilestone(
+  subredditName: string,
+  milestone: CelebratedMilestone
+): Promise<void> {
+  const key = `milestones:${subredditName}`;
+  const existing = await redis.get(key);
+  const milestones: CelebratedMilestone[] = existing
+    ? (JSON.parse(existing) as CelebratedMilestone[])
+    : [];
+  milestones.push(milestone);
+  await redis.set(key, JSON.stringify(milestones));
+}
+
 export async function saveLogEntry(
   subredditName: string,
   entry: LogEntry
