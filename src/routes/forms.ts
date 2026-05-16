@@ -201,7 +201,7 @@ forms.post('/view-strikes-submit', async (c) => {
 
     return {
       name: `strike_${i}`,
-      type: 'paragraph',
+      type: 'paragraph' as const,
       label: `Strike ${i + 1} — [${severityLabel}] ${s.rule}`,
       defaultValue: `${reason}\nBy ${modName} on ${date}`,
     };
@@ -465,7 +465,7 @@ forms.post('/view-milestones-submit', async (c) => {
 
       return {
         name: `milestone_${i}`,
-        type: 'paragraph',
+        type: 'paragraph' as const,
         label: `🎉 ${milestone.count.toLocaleString()} Members`,
         defaultValue: `Celebrated on ${date}`,
       };
