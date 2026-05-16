@@ -3,7 +3,7 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context, redis, reddit } from '@devvit/web/server';
 import { isT1, isT3 } from '@devvit/shared-types/tid.js';
 import { handleNuke, handleNukePost } from '../core/nuke';
-import { saveMilestoneSettings } from '../routes/api';
+import { getCelebratedMilestones, saveMilestoneSettings } from '../routes/api';
 
 type NukeFormValues = {
   remove?: boolean;
@@ -428,4 +428,68 @@ forms.post('/configure-milestones-submit', async (c) => {
     console.error('Configure milestones error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save settings.' }, 200);
   }
+});
+
+forms.post('/view-milestones-submit', async (c) => {
+  try {
+    const subreddit = await reddit.getCurrentSubreddit();
+    const milestones = await getCelebratedMilestones(subreddit.name);
+
+    if (milestones.length === 0) {
+      return c.json<UiResponse>(
+        {
+          showForm: {
+            name: 'viewMilestonesResult',
+            form: {
+              title: '🎉 Celebrated Milestones',
+              acceptLabel: 'Close',
+              fields: [
+                {
+                  name: 'result',
+                  label: 'Milestones',
+                  type: 'paragraph',
+                  defaultValue: '🎉 No milestones celebrated yet!',
+                },
+              ],
+            },
+          },
+        },
+        200
+      );
+    }
+
+    const milestoneFields = milestones.map((milestone, i) => {
+      const date = milestone.celebratedAt
+        ? new Date(milestone.celebratedAt).toLocaleDateString()
+        : 'Unknown date';
+
+      return {
+        name: `milestone_${i}`,
+        type: 'paragraph',
+        label: `🎉 ${milestone.count.toLocaleString()} Members`,
+        defaultValue: `Celebrated on ${date}`,
+      };
+    });
+
+    return c.json<UiResponse>(
+      {
+        showForm: {
+          name: 'viewMilestonesResult',
+          form: {
+            title: '🎉 Celebrated Milestones',
+            acceptLabel: 'Close',
+            fields: milestoneFields,
+          },
+        },
+      },
+      200
+    );
+  } catch (err) {
+    console.error('View milestones error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to load milestones.' }, 200);
+  }
+});
+
+forms.post('/view-milestones-result-noop', async (c) => {
+  return c.json<UiResponse>({ showToast: '' }, 200);
 });

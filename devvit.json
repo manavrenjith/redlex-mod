@@ -82,6 +82,20 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/create-log-post"
+      },
+      {
+        "label": "🎉 Configure Milestones",
+        "description": "Set up automatic celebration posts for subscriber milestones.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/configure-milestones"
+      },
+      {
+        "label": "🎉 View Celebrated Milestones",
+        "description": "See which milestones have been celebrated.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/view-milestones"
       }
     ]
   },
@@ -97,11 +111,15 @@
     "viewShiftNotes": "/internal/form/view-shift-notes-submit",
     "viewShiftNotesResult": "/internal/form/view-shift-notes-result-noop",
     "resolveShiftNote": "/internal/form/resolve-shift-note-submit",
-    "createLogPost": "/internal/form/create-log-post-submit"
+    "createLogPost": "/internal/form/create-log-post-submit",
+    "configureMilestones": "/internal/form/configure-milestones-submit",
+    "viewMilestones": "/internal/form/view-milestones-submit",
+    "viewMilestonesResult": "/internal/form/view-milestones-result-noop"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
-    "onModAction": "/internal/triggers/on-mod-action"
+    "onModAction": "/internal/triggers/on-mod-action",
+    "onPostSubmit": "/internal/triggers/on-post-submit"
   },
   "scripts": {
     "build": "vite build",
