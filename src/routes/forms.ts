@@ -3,6 +3,7 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context, redis, reddit } from '@devvit/web/server';
 import { isT1, isT3 } from '@devvit/shared-types/tid.js';
 import { handleNuke, handleNukePost } from '../core/nuke';
+import { saveMilestoneSettings } from '../routes/api';
 
 type NukeFormValues = {
   remove?: boolean;
@@ -394,5 +395,37 @@ forms.post('/create-log-post-submit', async (c) => {
   } catch (err) {
     console.error('Create log post error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to create log post.' }, 200);
+  }
+});
+
+forms.post('/configure-milestones-submit', async (c) => {
+  const values = await c.req.json<{
+    enabled?: boolean;
+    milestones?: string;
+    postTitle?: string;
+    postBody?: string;
+  }>();
+
+  try {
+    const subreddit = await reddit.getCurrentSubreddit();
+    const milestones = (values.milestones ?? '')
+      .split(',')
+      .map((entry) => Number.parseInt(entry.trim(), 10))
+      .filter((entry) => Number.isFinite(entry))
+      .sort((a, b) => a - b);
+
+    await saveMilestoneSettings(subreddit.name, {
+      enabled: Boolean(values.enabled),
+      subscriberMilestones: milestones,
+      postTitle: values.postTitle ?? '🎉 We just hit {count} members!',
+      postBody:
+        values.postBody ??
+        "Thank you to every member of our community for helping us reach this milestone. Here's to the next one! 🚀\n\n— The Mod Team",
+    });
+
+    return c.json<UiResponse>({ showToast: '✅ Milestone settings saved!' }, 200);
+  } catch (err) {
+    console.error('Configure milestones error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to save settings.' }, 200);
   }
 });
