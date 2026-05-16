@@ -441,3 +441,28 @@ menu.post('/internal/menu/view-milestones', async (c) => {
     200
   );
 });
+
+menu.post('/view-milestones', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'viewMilestones',
+        form: {
+          title: '🎉 Celebrated Milestones',
+          acceptLabel: 'Close',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'confirm',
+              label: 'Load milestones',
+              type: 'string',
+              defaultValue: 'yes',
+              required: false,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
