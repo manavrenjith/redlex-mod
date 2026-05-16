@@ -369,3 +369,52 @@ menu.post('/internal/menu/create-log-post', async (c) => {
     200
   );
 });
+
+menu.post('/configure-milestones', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'configureMilestones',
+        form: {
+          title: '🎉 Configure Community Milestones',
+          acceptLabel: 'Save Settings',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'enabled',
+              label: 'Enable Milestones',
+              type: 'boolean',
+              defaultValue: true,
+            },
+            {
+              name: 'milestones',
+              label: 'Subscriber Milestones',
+              type: 'string',
+              required: true,
+              helpText: 'Comma-separated numbers e.g. 100,500,1000,5000',
+              defaultValue: '100,500,1000,5000,10000',
+            },
+            {
+              name: 'postTitle',
+              label: 'Celebration Post Title',
+              type: 'string',
+              required: true,
+              helpText: 'Use {count} to insert the milestone number',
+              defaultValue: '🎉 We just hit {count} members!',
+            },
+            {
+              name: 'postBody',
+              label: 'Celebration Post Body',
+              type: 'paragraph',
+              required: true,
+              helpText: 'Use {count} to insert the milestone number',
+              defaultValue:
+                'Thank you to every member for helping us reach this milestone! 🚀\n\n— The Mod Team',
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
