@@ -493,3 +493,30 @@ forms.post('/view-milestones-submit', async (c) => {
 forms.post('/view-milestones-result-noop', async (c) => {
   return c.json<UiResponse>({ showToast: '' }, 200);
 });
+
+forms.post('/setup-digest-submit', async (c) => {
+  const values = await c.req.json<{
+    apiKey?: string;
+    postTitle?: string;
+    enabled?: boolean;
+  }>();
+
+  try {
+    const sub = await reddit.getCurrentSubreddit();
+    const apiKey = (values.apiKey ?? '').trim();
+
+    await redis.set(`digestApiKey:${sub.name}`, apiKey);
+    await redis.set(
+      `digestSettings:${sub.name}`,
+      JSON.stringify({
+        enabled: Boolean(values.enabled),
+        postTitle: values.postTitle ?? '📰 Weekly Community Digest',
+      })
+    );
+
+    return c.json<UiResponse>({ showToast: '✅ Weekly digest configured!' }, 200);
+  } catch (err) {
+    console.error('Setup digest error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to save digest settings.' }, 200);
+  }
+});
