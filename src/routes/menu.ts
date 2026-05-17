@@ -504,3 +504,27 @@ menu.post('/setup-digest', async (c) => {
     200
   );
 });
+
+menu.post('/generate-digest-now', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'generateDigestNow',
+        form: {
+          title: '📰 Generate Digest Now',
+          acceptLabel: 'Generate',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'confirm',
+              label: "This will fetch this week's top posts and post a digest",
+              type: 'boolean' as const,
+              defaultValue: true,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});

@@ -96,6 +96,20 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/view-milestones"
+      },
+      {
+        "label": "📰 Setup Weekly Digest",
+        "description": "Configure the AI-powered weekly community digest.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/setup-digest"
+      },
+      {
+        "label": "📰 Generate Digest Now",
+        "description": "Generate and post this week's community digest now.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/generate-digest-now"
       }
     ]
   },
@@ -114,12 +128,20 @@
     "createLogPost": "/internal/form/create-log-post-submit",
     "configureMilestones": "/internal/form/configure-milestones-submit",
     "viewMilestones": "/internal/form/view-milestones-submit",
-    "viewMilestonesResult": "/internal/form/view-milestones-result-noop"
+    "viewMilestonesResult": "/internal/form/view-milestones-result-noop",
+    "setupDigest": "/internal/form/setup-digest-submit",
+    "generateDigestNow": "/internal/form/generate-digest-now-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
     "onModAction": "/internal/triggers/on-mod-action",
     "onPostSubmit": "/internal/triggers/on-post-submit"
+  },
+  "scheduler": {
+    "weekly-digest": {
+      "endpoint": "/internal/scheduler/weekly-digest",
+      "cron": "0 9 * * 1"
+    }
   },
   "scripts": {
     "build": "vite build",

@@ -3,7 +3,13 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context, redis, reddit } from '@devvit/web/server';
 import { isT1, isT3 } from '@devvit/shared-types/tid.js';
 import { handleNuke, handleNukePost } from '../core/nuke';
-import { getCelebratedMilestones, saveMilestoneSettings } from '../routes/api';
+import {
+  buildDigestPrompt,
+  callGrokAPI,
+  getCelebratedMilestones,
+  postWeeklyDigest,
+  saveMilestoneSettings,
+} from '../routes/api';
 
 type NukeFormValues = {
   remove?: boolean;
@@ -518,5 +524,34 @@ forms.post('/setup-digest-submit', async (c) => {
   } catch (err) {
     console.error('Setup digest error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save digest settings.' }, 200);
+  }
+});
+
+forms.post('/generate-digest-now-submit', async (c) => {
+  try {
+    const subreddit = await reddit.getCurrentSubreddit();
+    const subredditName = subreddit.name;
+
+    const apiKey = await redis.get(`digestApiKey:${subredditName}`);
+    if (!apiKey) {
+      return c.json<UiResponse>({ showToast: '❌ Please set up digest first.' }, 200);
+    }
+
+    const raw = await redis.get(`digestSettings:${subredditName}`);
+    const settings = raw ? JSON.parse(raw) : { enabled: false };
+
+    const { posts, prompt } = await buildDigestPrompt(subredditName);
+    const summary = await callGrokAPI(apiKey, prompt);
+    await postWeeklyDigest(
+      subredditName,
+      summary,
+      posts,
+      settings.postTitle ?? '📰 Weekly Community Digest'
+    );
+
+    return c.json<UiResponse>({ showToast: '✅ Digest posted!' }, 200);
+  } catch (err) {
+    console.error('Generate digest error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to generate digest.' }, 200);
   }
 });
