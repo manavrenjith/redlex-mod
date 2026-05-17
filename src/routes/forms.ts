@@ -4,8 +4,8 @@ import { context, redis, reddit } from '@devvit/web/server';
 import { isT1, isT3 } from '@devvit/shared-types/tid.js';
 import { handleNuke, handleNukePost } from '../core/nuke';
 import {
-  buildDigestPrompt,
-  callGrokAPI,
+  buildDigestContent,
+  generateDigestSummary,
   getCelebratedMilestones,
   postWeeklyDigest,
   saveMilestoneSettings,
@@ -540,8 +540,8 @@ forms.post('/generate-digest-now-submit', async (c) => {
     const raw = await redis.get(`digestSettings:${subredditName}`);
     const settings = raw ? JSON.parse(raw) : { enabled: false };
 
-    const { posts, prompt } = await buildDigestPrompt(subredditName);
-    const summary = await callGrokAPI(apiKey, prompt);
+    const { posts } = await buildDigestContent(subredditName);
+    const summary = generateDigestSummary(subredditName, posts);
     await postWeeklyDigest(
       subredditName,
       summary,

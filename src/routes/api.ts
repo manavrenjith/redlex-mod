@@ -105,11 +105,11 @@ export async function getLogEntries(
   return existing ? (JSON.parse(existing) as LogEntry[]) : [];
 }
 
-export async function buildDigestPrompt(
+export async function buildDigestContent(
   subredditName: string
 ): Promise<{
   posts: Array<{ title: string; score: number; comments: number }>;
-  prompt: string;
+  summary: string;
 }> {
   const subreddit = await reddit.getSubredditByName(subredditName);
   const posts = await subreddit.getTopPosts({
@@ -124,53 +124,28 @@ export async function buildDigestPrompt(
     comments: post.numberOfComments,
   }));
 
-  const list = simplified
-    .map(
-      (post, index) =>
-        `${index + 1}. ${post.title} (Score: ${post.score}, Comments: ${post.comments})`
-    )
-    .join('\n');
+  const summary = generateDigestSummary(subredditName, simplified);
 
-  const prompt = `You are a friendly community manager for r/${subredditName} on Reddit.
-Summarize this week's top posts into an engaging weekly digest.
-Top posts this week:
-${list}
-Write a digest with:
-
-A warm 2-sentence intro
-3-4 sentence summary of the week's themes and highlights
-A brief mention of the top 3 posts
-An encouraging closing line
-
-Keep it under 400 words. Use friendly plain text, no markdown headers.`;
-
-  return { posts: simplified, prompt };
+  return { posts: simplified, summary };
 }
 
-export async function callGrokAPI(
-  apiKey: string,
-  prompt: string
-): Promise<string> {
-  try {
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'grok-3-fast',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 600,
-      }),
-    });
-
-    const data = await response.json();
-    return data.choices[0].message.content as string;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Grok API call failed: ${message}`);
+export function generateDigestSummary(
+  subredditName: string,
+  posts: Array<{ title: string; score: number; comments: number }>
+): string {
+  if (posts.length === 0) {
+    return `This week r/${subredditName} had no top posts to summarize. Keep the conversation going!`;
   }
+
+  const topPost = posts.reduce((best, post) =>
+    post.score > best.score ? post : best
+  );
+  const mostDiscussed = posts.reduce((best, post) =>
+    post.comments > best.comments ? post : best
+  );
+  const totalUpvotes = posts.reduce((sum, post) => sum + post.score, 0);
+
+  return `This week r/${subredditName} had ${posts.length} posts competing for the top spot. The community showed strong interest in "${topPost.title}" which led the pack with ${topPost.score} upvotes. Discussion was especially lively around "${mostDiscussed.title}" with ${mostDiscussed.comments} comments. Overall the community contributed ${totalUpvotes} upvotes this week — keep it up!`;
 }
 
 export async function postWeeklyDigest(

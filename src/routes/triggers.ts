@@ -9,8 +9,8 @@ import type { T3 } from '@devvit/shared-types/tid.js';
 import { reddit, redis } from '@devvit/web/server';
 import type { TaskRequest, TaskResponse } from '@devvit/web/server';
 import {
-  buildDigestPrompt,
-  callGrokAPI,
+  buildDigestContent,
+  generateDigestSummary,
   getCelebratedMilestones,
   getLogEntries,
   getMilestoneSettings,
@@ -200,8 +200,8 @@ triggers.post('/scheduler/weekly-digest', async (c) => {
       return c.json<TaskResponse>({ status: 'ok' }, 200);
     }
 
-    const { posts, prompt } = await buildDigestPrompt(subredditName);
-    const summary = await callGrokAPI(apiKey, prompt);
+    const { posts } = await buildDigestContent(subredditName);
+    const summary = generateDigestSummary(subredditName, posts);
     await postWeeklyDigest(subredditName, summary, posts, settings.postTitle);
 
     console.log(`Weekly digest posted for r/${subredditName}.`);
