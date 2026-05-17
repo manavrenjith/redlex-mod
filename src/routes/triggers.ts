@@ -7,10 +7,14 @@ import type {
 } from '@devvit/web/shared';
 import type { T3 } from '@devvit/shared-types/tid.js';
 import { reddit, redis } from '@devvit/web/server';
+import type { TaskRequest, TaskResponse } from '@devvit/web/server';
 import {
+  buildDigestPrompt,
+  callGrokAPI,
   getCelebratedMilestones,
   getLogEntries,
   getMilestoneSettings,
+  postWeeklyDigest,
   saveCelebratedMilestone,
   saveLogEntry,
 } from '../routes/api';
@@ -173,4 +177,37 @@ triggers.post('/on-post-submit', async (c) => {
   }
 
   return c.json<TriggerResponse>({ status: 'success' }, 200);
+});
+
+triggers.post('/scheduler/weekly-digest', async (c) => {
+  try {
+    const input = await c.req.json<TaskRequest>();
+    const subredditName = input.subreddit?.name ?? '';
+
+    if (!subredditName) {
+      return c.json<TaskResponse>({ status: 'ok' }, 200);
+    }
+
+    const apiKey = await redis.get(`digestApiKey:${subredditName}`);
+    if (!apiKey) {
+      console.warn(`Weekly digest skipped: missing API key for ${subredditName}.`);
+      return c.json<TaskResponse>({ status: 'ok' }, 200);
+    }
+
+    const raw = await redis.get(`digestSettings:${subredditName}`);
+    const settings = raw ? JSON.parse(raw) : { enabled: false };
+    if (!settings.enabled) {
+      return c.json<TaskResponse>({ status: 'ok' }, 200);
+    }
+
+    const { posts, prompt } = await buildDigestPrompt(subredditName);
+    const summary = await callGrokAPI(apiKey, prompt);
+    await postWeeklyDigest(subredditName, summary, posts, settings.postTitle);
+
+    console.log(`Weekly digest posted for r/${subredditName}.`);
+  } catch (err) {
+    console.error('Weekly digest scheduler error:', err);
+  }
+
+  return c.json<TaskResponse>({ status: 'ok' }, 200);
 });
