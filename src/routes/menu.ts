@@ -466,3 +466,41 @@ menu.post('/view-milestones', async (c) => {
     200
   );
 });
+
+menu.post('/setup-digest', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'setupDigest',
+        form: {
+          title: '📰 Setup Weekly Digest',
+          acceptLabel: 'Save',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'apiKey',
+              label: 'Grok API Key',
+              type: 'string' as const,
+              required: true,
+              helpText: 'Get your key from console.x.ai',
+            },
+            {
+              name: 'postTitle',
+              label: 'Digest Post Title',
+              type: 'string' as const,
+              required: true,
+              defaultValue: '📰 Weekly Community Digest',
+            },
+            {
+              name: 'enabled',
+              label: 'Enable Weekly Digest',
+              type: 'boolean' as const,
+              defaultValue: true,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
