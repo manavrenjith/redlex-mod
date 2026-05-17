@@ -181,7 +181,7 @@ triggers.post('/on-post-submit', async (c) => {
 
 triggers.post('/scheduler/weekly-digest', async (c) => {
   try {
-    const input = await c.req.json<TaskRequest>();
+    const input = await c.req.json<TaskRequest & { subreddit?: { name?: string } }>();
     const subredditName = input.subreddit?.name ?? '';
 
     if (!subredditName) {

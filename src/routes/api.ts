@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { reddit, redis } from '@devvit/web/server';
+import type { Post } from '@devvit/web/server';
 
 export const api = new Hono();
 
@@ -110,13 +111,14 @@ export async function buildDigestPrompt(
   posts: Array<{ title: string; score: number; comments: number }>;
   prompt: string;
 }> {
-  const posts = await reddit.getTopPosts({
-    subredditName,
+  const subreddit = await reddit.getSubredditByName(subredditName);
+  const posts = await subreddit.getTopPosts({
     timeFilter: 'week',
     limit: 10,
   });
+  const postsArray = await posts.all();
 
-  const simplified = posts.map((post) => ({
+  const simplified = postsArray.map((post: Post) => ({
     title: post.title,
     score: post.score,
     comments: post.numberOfComments,
