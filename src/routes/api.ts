@@ -113,7 +113,7 @@ export async function buildDigestPrompt(
 }> {
   const subreddit = await reddit.getSubredditByName(subredditName);
   const posts = await subreddit.getTopPosts({
-    timeFilter: 'week',
+    timeframe: 'week',
     limit: 10,
   });
   const postsArray = await posts.all();
