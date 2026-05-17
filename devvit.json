@@ -138,9 +138,11 @@
     "onPostSubmit": "/internal/triggers/on-post-submit"
   },
   "scheduler": {
-    "weekly-digest": {
-      "endpoint": "/internal/scheduler/weekly-digest",
-      "cron": "0 9 * * 1"
+    "tasks": {
+      "weekly-digest": {
+        "endpoint": "/internal/scheduler/weekly-digest",
+        "cron": "0 9 * * 1"
+      }
     }
   },
   "scripts": {
