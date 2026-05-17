@@ -171,6 +171,38 @@ export async function callGrokAPI(
   }
 }
 
+export async function postWeeklyDigest(
+  subredditName: string,
+  summary: string,
+  posts: Array<{ title: string; score: number; comments: number }>,
+  postTitle: string
+): Promise<void> {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const dateRange = `${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()}`;
+
+  const topPosts = posts.slice(0, 3).map((post) => {
+    const title = post.title.trim();
+    return `"${title}" — ${post.score} upvotes`;
+  });
+
+  const body = `📰 Weekly Community Digest
+Week of ${dateRange}
+${summary}
+━━━━━━━━━━━━━━━━━━
+🔥 Top Posts This Week
+
+${topPosts.join('\n')}
+━━━━━━━━━━━━━━━━━━
+Generated automatically by RedLex`;
+
+  await reddit.submitPost({
+    subredditName,
+    title: postTitle,
+    text: body,
+  });
+}
+
 // Save a new strike
 api.post('/strikes/add', async (c) => {
   const body = await c.req.json<Omit<Strike, 'id' | 'createdAt' | 'modName'>>();
