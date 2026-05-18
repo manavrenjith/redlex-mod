@@ -10,7 +10,6 @@ import { reddit, redis } from '@devvit/web/server';
 import type { TaskRequest, TaskResponse } from '@devvit/web/server';
 import {
   buildDigestContent,
-  generateDigestSummary,
   getCelebratedMilestones,
   getLogEntries,
   getMilestoneSettings,
@@ -188,21 +187,23 @@ triggers.post('/scheduler/weekly-digest', async (c) => {
       return c.json<TaskResponse>({ status: 'ok' }, 200);
     }
 
-    const apiKey = await redis.get(`digestApiKey:${subredditName}`);
-    if (!apiKey) {
-      console.warn(`Weekly digest skipped: missing API key for ${subredditName}.`);
-      return c.json<TaskResponse>({ status: 'ok' }, 200);
-    }
-
     const raw = await redis.get(`digestSettings:${subredditName}`);
-    const settings = raw ? JSON.parse(raw) : { enabled: false };
+    const settings = raw ? JSON.parse(raw) : { enabled: false, useAI: false };
     if (!settings.enabled) {
       return c.json<TaskResponse>({ status: 'ok' }, 200);
     }
 
+    const useAI = settings.useAI ?? false;
+    const apiKey = (await redis.get(`digestApiKey:${subredditName}`)) ?? undefined;
+
     const { posts } = await buildDigestContent(subredditName);
-    const summary = generateDigestSummary(subredditName, posts);
-    await postWeeklyDigest(subredditName, summary, posts, settings.postTitle);
+    await postWeeklyDigest(
+      subredditName,
+      posts,
+      settings.postTitle ?? '📰 Weekly Community Digest',
+      useAI,
+      apiKey
+    );
 
     console.log(`Weekly digest posted for r/${subredditName}.`);
   } catch (err) {

@@ -190,17 +190,22 @@ Be warm, encouraging, and community-focused. Plain text only.`;
 
 export async function postWeeklyDigest(
   subredditName: string,
-  summary: string,
   posts: Array<{ title: string; score: number; comments: number }>,
   postTitle: string
+  , useAI: boolean
+  , apiKey?: string
 ): Promise<void> {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const dateRange = `${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()}`;
 
-  const topPosts = posts.slice(0, 3).map((post) => {
+  const summary = useAI && apiKey
+    ? await callOpenAI(apiKey, subredditName, posts)
+    : generateDigestSummary(subredditName, posts);
+
+  const topPosts = posts.slice(0, 3).map((post, index) => {
     const title = post.title.trim();
-    return `"${title}" — ${post.score} upvotes · ${post.comments} comments`;
+    return `${index + 1}. "${title}" — ${post.score} upvotes · ${post.comments} comments`;
   });
 
   const totalPosts = posts.length;
@@ -212,15 +217,18 @@ export async function postWeeklyDigest(
     : 0;
 
   const body = [
-    '📰 Weekly Community Digest',
+    '**📰 Weekly Community Digest**',
     `Week of ${dateRange}`,
     summary,
-    '🔥 Top Posts This Week',
+    '---',
+    '**🔥 Top Posts This Week**',
     topPosts.join('\n\n'),
-    '📊 Community Stats',
+    '---',
+    '**📊 Community Stats**',
     `Total posts this week: ${totalPosts}`,
     `Most upvoted: ${topScore} points`,
     `Most discussed: ${topComments} comments`,
+    '---',
     'Generated automatically by RedLex 🤖',
   ].join('\n\n');
 

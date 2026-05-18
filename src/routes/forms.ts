@@ -5,7 +5,6 @@ import { isT1, isT3 } from '@devvit/shared-types/tid.js';
 import { handleNuke, handleNukePost } from '../core/nuke';
 import {
   buildDigestContent,
-  generateDigestSummary,
   getCelebratedMilestones,
   postWeeklyDigest,
   saveMilestoneSettings,
@@ -72,114 +71,125 @@ const getTargetId = (values: NukeFormValues) => {
 };
 
 forms.post('/mop-comment-submit', async (c) => {
-  const values = await c.req.json<NukeFormValues>();
-  const normalized = normalizeValues(values);
+  {
+  const mopCommentValues = await c.req.json<NukeFormValues>();
+  const mopCommentNormalized = normalizeValues(mopCommentValues);
 
-  if (!normalized.lock && !normalized.remove) {
+  if (!mopCommentNormalized.lock && !mopCommentNormalized.remove) {
     return c.json<UiResponse>({ showToast: 'You must select either lock or remove.' }, 200);
   }
 
-  const targetId = getTargetId(values);
-  if (!isT1(targetId)) {
+  const mopCommentTargetId = getTargetId(mopCommentValues);
+  if (!isT1(mopCommentTargetId)) {
     return c.json<UiResponse>({ showToast: 'Mop failed! Please try again later.' }, 200);
   }
 
-  const result = await handleNuke({
-    ...normalized,
-    commentId: targetId,
+  const mopCommentResult = await handleNuke({
+    ...mopCommentNormalized,
+    commentId: mopCommentTargetId,
     subredditId: context.subredditId,
   });
 
   return c.json<UiResponse>(
-    { showToast: `${result.success ? 'Success' : 'Failed'} : ${result.message}` },
+    {
+      showToast: `${mopCommentResult.success ? 'Success' : 'Failed'} : ${mopCommentResult.message}`,
+    },
     200
   );
+  }
 });
 
 forms.post('/mop-post-submit', async (c) => {
-  const values = await c.req.json<NukeFormValues>();
-  const normalized = normalizeValues(values);
+  {
+  const mopPostValues = await c.req.json<NukeFormValues>();
+  const mopPostNormalized = normalizeValues(mopPostValues);
 
-  if (!normalized.lock && !normalized.remove) {
+  if (!mopPostNormalized.lock && !mopPostNormalized.remove) {
     return c.json<UiResponse>({ showToast: 'You must select either lock or remove.' }, 200);
   }
 
-  const targetId = getTargetId(values);
-  if (!isT3(targetId)) {
+  const mopPostTargetId = getTargetId(mopPostValues);
+  if (!isT3(mopPostTargetId)) {
     return c.json<UiResponse>({ showToast: 'Mop failed! Please try again later.' }, 200);
   }
 
-  const result = await handleNukePost({
-    ...normalized,
-    postId: targetId,
+  const mopPostResult = await handleNukePost({
+    ...mopPostNormalized,
+    postId: mopPostTargetId,
     subredditId: context.subredditId,
   });
 
   return c.json<UiResponse>(
-    { showToast: `${result.success ? 'Success' : 'Failed'} : ${result.message}` },
+    { showToast: `${mopPostResult.success ? 'Success' : 'Failed'} : ${mopPostResult.message}` },
     200
   );
+  }
 });
 
 forms.post('/add-strike-submit', async (c) => {
-  const values = await c.req.json<StrikeFormValues>();
+  {
+  const strikeValues = await c.req.json<StrikeFormValues>();
 
-  if (!values.username || !values.rule || !values.reason || !values.severity) {
+  if (!strikeValues.username || !strikeValues.rule || !strikeValues.reason || !strikeValues.severity) {
     return c.json<UiResponse>({ showToast: '❌ Please fill in all required fields.' }, 200);
   }
 
-  const normalizedSeverity = normalizeSeverityInput(values.severity);
-  if (!normalizedSeverity) {
+  const strikeSeverity = normalizeSeverityInput(strikeValues.severity);
+  if (!strikeSeverity) {
     return c.json<UiResponse>({ showToast: '❌ Please select a valid severity.' }, 200);
   }
 
   try {
-    const username = values.username.replace(/^u\//, '').toLowerCase();
-    const key = `strikes:${username}`;
+    const strikeUsername = strikeValues.username.replace(/^u\//, '').toLowerCase();
+    const strikeKey = `strikes:${strikeUsername}`;
 
-    const existing = await redis.get(key);
-    const strikes = existing ? JSON.parse(existing) : [];
+    const strikeExisting = await redis.get(strikeKey);
+    const strikeStrikes = strikeExisting ? JSON.parse(strikeExisting) : [];
 
-    const mod = await reddit.getCurrentUser();
-    const strike = {
+    const strikeMod = await reddit.getCurrentUser();
+    const strikeRecord = {
       id: crypto.randomUUID(),
-      username,
-      rule: values.rule,
-      reason: values.reason,
-      severity: normalizedSeverity,
-      postUrl: values.postUrl ?? '',
-      modName: mod?.username ?? 'unknown',
+      username: strikeUsername,
+      rule: strikeValues.rule,
+      reason: strikeValues.reason,
+      severity: strikeSeverity,
+      postUrl: strikeValues.postUrl ?? '',
+      modName: strikeMod?.username ?? 'unknown',
       createdAt: new Date().toISOString(),
     };
 
-    strikes.push(strike);
-    await redis.set(key, JSON.stringify(strikes));
-    console.log(`✅ Strike saved for u/${username} — total strikes: ${strikes.length}`);
-    return c.json<UiResponse>({ showToast: `✅ Strike logged for u/${username}` }, 200);
+    strikeStrikes.push(strikeRecord);
+    await redis.set(strikeKey, JSON.stringify(strikeStrikes));
+    console.log(
+      `✅ Strike saved for u/${strikeUsername} — total strikes: ${strikeStrikes.length}`
+    );
+    return c.json<UiResponse>({ showToast: `✅ Strike logged for u/${strikeUsername}` }, 200);
   } catch (err) {
     console.error('Strike submission error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to log strike. Please try again.' }, 200);
   }
+  }
 });
 forms.post('/view-strikes-submit', async (c) => {
-  const values = await c.req.json<{ username?: string }>();
-  const username = (values.username ?? '').replace(/^u\//, '').toLowerCase();
+  {
+  const viewValues = await c.req.json<{ username?: string }>();
+  const viewUsername = (viewValues.username ?? '').replace(/^u\//, '').toLowerCase();
   
-  if (!username) {
+  if (!viewUsername) {
     return c.json<UiResponse>({ showToast: '❌ Please enter a username.' }, 200);
   }
 
-  const key = `strikes:${username}`;
-  const existing = await redis.get(key);
-  const strikes = existing ? JSON.parse(existing) : [];
+  const viewKey = `strikes:${viewUsername}`;
+  const viewExisting = await redis.get(viewKey);
+  const viewStrikes = viewExisting ? JSON.parse(viewExisting) : [];
 
-  if (strikes.length === 0) {
+  if (viewStrikes.length === 0) {
     return c.json<UiResponse>(
       {
         showForm: {
           name: 'viewStrikesResult',
           form: {
-            title: `⚖️ u/${username} — Strike Record`,
+            title: `⚖️ u/${viewUsername} — Strike Record`,
             acceptLabel: 'Close',
             fields: [
               {
@@ -196,20 +206,23 @@ forms.post('/view-strikes-submit', async (c) => {
     );
   }
 
-  const strikeFields = strikes.map((s: any, i: number) => {
-    const rawSeverity = Array.isArray(s.severity) ? s.severity[0] : s.severity;
-    const severityLabel = typeof rawSeverity === 'string' ? rawSeverity : 'UNKNOWN';
-    const date = s.createdAt
-      ? new Date(s.createdAt).toLocaleDateString()
+  const viewStrikeFields = viewStrikes.map((viewStrike: any, viewIndex: number) => {
+    const viewRawSeverity = Array.isArray(viewStrike.severity)
+      ? viewStrike.severity[0]
+      : viewStrike.severity;
+    const viewSeverityLabel =
+      typeof viewRawSeverity === 'string' ? viewRawSeverity : 'UNKNOWN';
+    const viewDate = viewStrike.createdAt
+      ? new Date(viewStrike.createdAt).toLocaleDateString()
       : 'Unknown date';
-    const modName = s.modName ? `u/${s.modName}` : 'unknown';
-    const reason = s.reason ?? '';
+    const viewModName = viewStrike.modName ? `u/${viewStrike.modName}` : 'unknown';
+    const viewReason = viewStrike.reason ?? '';
 
     return {
-      name: `strike_${i}`,
+      name: `strike_${viewIndex}`,
       type: 'paragraph' as const,
-      label: `Strike ${i + 1} — [${severityLabel}] ${s.rule}`,
-      defaultValue: `${reason}\nBy ${modName} on ${date}`,
+      label: `Strike ${viewIndex + 1} — [${viewSeverityLabel}] ${viewStrike.rule}`,
+      defaultValue: `${viewReason}\nBy ${viewModName} on ${viewDate}`,
     };
   });
 
@@ -218,24 +231,26 @@ forms.post('/view-strikes-submit', async (c) => {
       showForm: {
         name: 'viewStrikesResult',
         form: {
-          title: `⚖️ u/${username} — Strike Record`,
+          title: `⚖️ u/${viewUsername} — Strike Record`,
           acceptLabel: 'Close',
-          fields: strikeFields,
+          fields: viewStrikeFields,
         },
       },
     },
     200
   );
+  }
 });
 forms.post('/create-redlex-post-submit', async (c) => {
-  const values = await c.req.json<{ title?: string }>();
-  const title = values.title ?? '⚖️ RedLex — Mod Strike Dashboard';
+  {
+  const redlexValues = await c.req.json<{ title?: string }>();
+  const redlexTitle = redlexValues.title ?? '⚖️ RedLex — Mod Strike Dashboard';
 
   try {
-    const sub = await reddit.getCurrentSubreddit();
+    const redlexSub = await reddit.getCurrentSubreddit();
     await reddit.submitPost({
-  subredditName: sub.name,
-  title,
+  subredditName: redlexSub.name,
+  title: redlexTitle,
   text: '⚖️ This is the RedLex Strike Dashboard. Use mod actions to look up user strikes.',
 });
     return c.json<UiResponse>({ showToast: '✅ RedLex dashboard post created!' }, 200);
@@ -243,82 +258,88 @@ forms.post('/create-redlex-post-submit', async (c) => {
     console.error('Create post error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to create post.' }, 200);
   }
+  }
 });
 
 forms.post('/view-strikes-result-noop', async (c) => {
+  {
   return c.json<UiResponse>({ showToast: '' }, 200);
+  }
 });
 
 forms.post('/add-shift-note-submit', async (c) => {
-  const values = await c.req.json<{ text?: string; priority?: string | string[] }>();
-  const text = (values.text ?? '').trim();
+  {
+  const noteValues = await c.req.json<{ text?: string; priority?: string | string[] }>();
+  const noteText = (noteValues.text ?? '').trim();
 
-  if (!text) {
+  if (!noteText) {
     return c.json<UiResponse>({ showToast: '❌ Please enter a note' }, 200);
   }
 
-  const rawPriority = Array.isArray(values.priority)
-    ? values.priority[0]
-    : values.priority;
-  const priority = rawPriority === 'urgent' ? 'urgent' : 'normal';
+  const noteRawPriority = Array.isArray(noteValues.priority)
+    ? noteValues.priority[0]
+    : noteValues.priority;
+  const notePriority = noteRawPriority === 'urgent' ? 'urgent' : 'normal';
 
   try {
-    const [subreddit, user] = await Promise.all([
+    const [noteSubreddit, noteUser] = await Promise.all([
       reddit.getCurrentSubreddit(),
       reddit.getCurrentUser(),
     ]);
-    const key = `shiftNotes:${subreddit.name}`;
+    const noteKey = `shiftNotes:${noteSubreddit.name}`;
 
-    const existing = await redis.get(key);
-    const notes = existing ? JSON.parse(existing) : [];
+    const noteExisting = await redis.get(noteKey);
+    const noteNotes = noteExisting ? JSON.parse(noteExisting) : [];
 
-    const note = {
+    const noteEntry = {
       id: crypto.randomUUID(),
-      text,
-      modName: user?.username ?? 'unknown',
+      text: noteText,
+      modName: noteUser?.username ?? 'unknown',
       createdAt: new Date().toISOString(),
       resolved: false,
-      priority,
+      priority: notePriority,
     };
 
-    notes.push(note);
-    await redis.set(key, JSON.stringify(notes));
+    noteNotes.push(noteEntry);
+    await redis.set(noteKey, JSON.stringify(noteNotes));
 
     return c.json<UiResponse>({ showToast: '✅ Shift note added' }, 200);
   } catch (err) {
     console.error('Shift note submission error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save note' }, 200);
   }
+  }
 });
 
 forms.post('/view-shift-notes-submit', async (c) => {
+  {
   try {
-    const subreddit = await reddit.getCurrentSubreddit();
-    const key = `shiftNotes:${subreddit.name}`;
+    const notesSubreddit = await reddit.getCurrentSubreddit();
+    const notesKey = `shiftNotes:${notesSubreddit.name}`;
 
-    const existing = await redis.get(key);
-    const notes = existing ? JSON.parse(existing) : [];
+    const notesExisting = await redis.get(notesKey);
+    const notesItems = notesExisting ? JSON.parse(notesExisting) : [];
 
-    const activeNotes = notes
+    const notesActive = notesItems
       .filter((note: any) => note && note.resolved === false)
       .sort(
         (a: any, b: any) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-    const summary =
-      activeNotes.length === 0
+    const notesSummary =
+      notesActive.length === 0
         ? '✅ No active shift notes'
-        : activeNotes
+        : notesActive
             .map((note: any) => {
-              const priority = note.priority === 'urgent' ? 'URGENT' : 'NORMAL';
-              const icon = priority === 'URGENT' ? '🔴' : '📌';
-              const date = note.createdAt
+              const notesPriority = note.priority === 'urgent' ? 'URGENT' : 'NORMAL';
+              const notesIcon = notesPriority === 'URGENT' ? '🔴' : '📌';
+              const notesDate = note.createdAt
                 ? new Date(note.createdAt).toLocaleDateString()
                 : 'Unknown date';
-              const modName = note.modName ? `u/${note.modName}` : 'unknown mod';
-              const text = note.text ?? '';
-              return `${icon} [${priority}] ${text} — ${modName} on ${date}`;
+              const notesModName = note.modName ? `u/${note.modName}` : 'unknown mod';
+              const notesText = note.text ?? '';
+              return `${notesIcon} [${notesPriority}] ${notesText} — ${notesModName} on ${notesDate}`;
             })
             .join('\n\n');
 
@@ -334,7 +355,7 @@ forms.post('/view-shift-notes-submit', async (c) => {
                 name: 'result',
                 label: 'Shift Notes',
                 type: 'paragraph',
-                defaultValue: summary,
+                defaultValue: notesSummary,
               },
             ],
           },
@@ -346,66 +367,74 @@ forms.post('/view-shift-notes-submit', async (c) => {
     console.error('View shift notes error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to load notes' }, 200);
   }
+  }
 });
 
 forms.post('/view-shift-notes-result-noop', async (c) => {
+  {
   return c.json<UiResponse>({ showToast: '' }, 200);
+  }
 });
 
 forms.post('/resolve-shift-note-submit', async (c) => {
-  const values = await c.req.json<{ noteId?: string }>();
-  const noteId = (values.noteId ?? '').trim();
+  {
+  const resolveValues = await c.req.json<{ noteId?: string }>();
+  const resolveId = (resolveValues.noteId ?? '').trim();
 
-  if (!noteId) {
+  if (!resolveId) {
     return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
   }
 
   try {
-    const subreddit = await reddit.getCurrentSubreddit();
-    const key = `shiftNotes:${subreddit.name}`;
+    const resolveSubreddit = await reddit.getCurrentSubreddit();
+    const resolveKey = `shiftNotes:${resolveSubreddit.name}`;
 
-    const existing = await redis.get(key);
-    const notes = existing ? JSON.parse(existing) : [];
+    const resolveExisting = await redis.get(resolveKey);
+    const resolveNotes = resolveExisting ? JSON.parse(resolveExisting) : [];
 
-    const match = notes.find((note: any) => note && note.id === noteId);
-    if (!match) {
+    const resolveMatch = resolveNotes.find((note: any) => note && note.id === resolveId);
+    if (!resolveMatch) {
       return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
     }
 
-    match.resolved = true;
-    await redis.set(key, JSON.stringify(notes));
+    resolveMatch.resolved = true;
+    await redis.set(resolveKey, JSON.stringify(resolveNotes));
 
     return c.json<UiResponse>({ showToast: '✅ Note resolved' }, 200);
   } catch (err) {
     console.error('Resolve shift note error:', err);
     return c.json<UiResponse>({ showToast: '❌ Note not found' }, 200);
   }
+  }
 });
 
 forms.post('/create-log-post-submit', async (c) => {
-  const values = await c.req.json<{ title?: string }>();
-  const title = values.title ?? '📋 RedLex — Mod Action Log';
+  {
+  const logValues = await c.req.json<{ title?: string }>();
+  const logTitle = logValues.title ?? '📋 RedLex — Mod Action Log';
 
   try {
-    const subreddit = await reddit.getCurrentSubreddit();
-    const post = await reddit.submitPost({
-      subredditName: subreddit.name,
-      title,
+    const logSubreddit = await reddit.getCurrentSubreddit();
+    const logPost = await reddit.submitPost({
+      subredditName: logSubreddit.name,
+      title: logTitle,
       text: '📋 This log is maintained automatically by RedLex.\nNo actions logged yet.',
     });
 
-    const key = `logPostId:${subreddit.name}`;
-    await redis.set(key, post.id);
+    const logKey = `logPostId:${logSubreddit.name}`;
+    await redis.set(logKey, logPost.id);
 
     return c.json<UiResponse>({ showToast: '✅ Transparency log post created!' }, 200);
   } catch (err) {
     console.error('Create log post error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to create log post.' }, 200);
   }
+  }
 });
 
 forms.post('/configure-milestones-submit', async (c) => {
-  const values = await c.req.json<{
+  {
+  const milestoneValues = await c.req.json<{
     enabled?: boolean;
     milestones?: string;
     postTitle?: string;
@@ -413,19 +442,19 @@ forms.post('/configure-milestones-submit', async (c) => {
   }>();
 
   try {
-    const subreddit = await reddit.getCurrentSubreddit();
-    const milestones = (values.milestones ?? '')
+    const milestoneSubreddit = await reddit.getCurrentSubreddit();
+    const milestoneList = (milestoneValues.milestones ?? '')
       .split(',')
       .map((entry) => Number.parseInt(entry.trim(), 10))
       .filter((entry) => Number.isFinite(entry))
       .sort((a, b) => a - b);
 
-    await saveMilestoneSettings(subreddit.name, {
-      enabled: Boolean(values.enabled),
-      subscriberMilestones: milestones,
-      postTitle: values.postTitle ?? '🎉 We just hit {count} members!',
+    await saveMilestoneSettings(milestoneSubreddit.name, {
+      enabled: Boolean(milestoneValues.enabled),
+      subscriberMilestones: milestoneList,
+      postTitle: milestoneValues.postTitle ?? '🎉 We just hit {count} members!',
       postBody:
-        values.postBody ??
+        milestoneValues.postBody ??
         "Thank you to every member of our community for helping us reach this milestone. Here's to the next one! 🚀\n\n— The Mod Team",
     });
 
@@ -434,14 +463,16 @@ forms.post('/configure-milestones-submit', async (c) => {
     console.error('Configure milestones error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save settings.' }, 200);
   }
+  }
 });
 
 forms.post('/view-milestones-submit', async (c) => {
+  {
   try {
-    const subreddit = await reddit.getCurrentSubreddit();
-    const milestones = await getCelebratedMilestones(subreddit.name);
+    const milestonesSubreddit = await reddit.getCurrentSubreddit();
+    const milestonesList = await getCelebratedMilestones(milestonesSubreddit.name);
 
-    if (milestones.length === 0) {
+    if (milestonesList.length === 0) {
       return c.json<UiResponse>(
         {
           showForm: {
@@ -464,8 +495,8 @@ forms.post('/view-milestones-submit', async (c) => {
       );
     }
 
-    const milestoneFields = milestones.map((milestone, i) => {
-      const date = milestone.celebratedAt
+    const milestonesFields = milestonesList.map((milestone, i) => {
+      const milestonesDate = milestone.celebratedAt
         ? new Date(milestone.celebratedAt).toLocaleDateString()
         : 'Unknown date';
 
@@ -473,7 +504,7 @@ forms.post('/view-milestones-submit', async (c) => {
         name: `milestone_${i}`,
         type: 'paragraph' as const,
         label: `🎉 ${milestone.count.toLocaleString()} Members`,
-        defaultValue: `Celebrated on ${date}`,
+        defaultValue: `Celebrated on ${milestonesDate}`,
       };
     });
 
@@ -484,7 +515,7 @@ forms.post('/view-milestones-submit', async (c) => {
           form: {
             title: '🎉 Celebrated Milestones',
             acceptLabel: 'Close',
-            fields: milestoneFields,
+            fields: milestonesFields,
           },
         },
       },
@@ -494,14 +525,18 @@ forms.post('/view-milestones-submit', async (c) => {
     console.error('View milestones error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to load milestones.' }, 200);
   }
+  }
 });
 
 forms.post('/view-milestones-result-noop', async (c) => {
+  {
   return c.json<UiResponse>({ showToast: '' }, 200);
+  }
 });
 
 forms.post('/setup-digest-submit', async (c) => {
-  const values = await c.req.json<{
+  {
+  const setupValues = await c.req.json<{
     apiKey?: string;
     postTitle?: string;
     enabled?: boolean;
@@ -510,57 +545,66 @@ forms.post('/setup-digest-submit', async (c) => {
   }>();
 
   try {
-    const sub = await reddit.getCurrentSubreddit();
-    const openAIKey = (values.openAIKey ?? '').trim();
+    const setupSub = await reddit.getCurrentSubreddit();
+    const setupOpenAIKey = (setupValues.openAIKey ?? '').trim();
 
-    if (openAIKey) {
-      await redis.set(`digestApiKey:${sub.name}`, openAIKey);
+    if (setupOpenAIKey) {
+      await redis.set(`digestApiKey:${setupSub.name}`, setupOpenAIKey);
     }
     await redis.set(
-      `digestSettings:${sub.name}`,
+      `digestSettings:${setupSub.name}`,
       JSON.stringify({
-        enabled: Boolean(values.enabled),
-        postTitle: values.postTitle ?? '📰 Weekly Community Digest',
-        useAI: Boolean(values.useAI),
+        enabled: Boolean(setupValues.enabled),
+        postTitle: setupValues.postTitle ?? '📰 Weekly Community Digest',
+        useAI: Boolean(setupValues.useAI),
       })
     );
 
-    const modeLabel = values.useAI ? 'AI' : 'Template';
+    const setupModeLabel = setupValues.useAI ? 'AI' : 'Template';
     return c.json<UiResponse>(
-      { showToast: `✅ Digest configured! Mode: ${modeLabel}` },
+      { showToast: `✅ Digest configured! Mode: ${setupModeLabel}` },
       200
     );
   } catch (err) {
     console.error('Setup digest error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save digest settings.' }, 200);
   }
+  }
 });
 
 forms.post('/generate-digest-now-submit', async (c) => {
+  {
   try {
-    const subreddit = await reddit.getCurrentSubreddit();
-    const subredditName = subreddit.name;
+    const nowSub = await reddit.getCurrentSubreddit();
+    const nowSubredditName = nowSub.name;
 
-    const apiKey = await redis.get(`digestApiKey:${subredditName}`);
-    if (!apiKey) {
+    const nowDigestApiKey = await redis.get(`digestApiKey:${nowSubredditName}`);
+    if (!nowDigestApiKey) {
       return c.json<UiResponse>({ showToast: '❌ Please set up digest first.' }, 200);
     }
 
-    const raw = await redis.get(`digestSettings:${subredditName}`);
-    const settings = raw ? JSON.parse(raw) : { enabled: false };
+    const nowRaw = await redis.get(`digestSettings:${nowSubredditName}`);
+    const nowSettings = nowRaw ? JSON.parse(nowRaw) : { enabled: false, useAI: false };
+    const nowUseAI = nowSettings.useAI ?? false;
 
-    const { posts } = await buildDigestContent(subredditName);
-    const summary = generateDigestSummary(subredditName, posts);
+    const nowApiKey = (await redis.get(`digestApiKey:${nowSubredditName}`)) ?? undefined;
+
+    const { posts: nowPosts } = await buildDigestContent(nowSubredditName);
     await postWeeklyDigest(
-      subredditName,
-      summary,
-      posts,
-      settings.postTitle ?? '📰 Weekly Community Digest'
+      nowSubredditName,
+      nowPosts,
+      nowSettings.postTitle ?? '📰 Weekly Community Digest',
+      nowUseAI,
+      nowApiKey
     );
 
-    return c.json<UiResponse>({ showToast: '✅ Digest posted!' }, 200);
+    return c.json<UiResponse>(
+      { showToast: `✅ Digest posted! (${nowUseAI ? 'AI mode' : 'Template mode'})` },
+      200
+    );
   } catch (err) {
     console.error('Generate digest error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to generate digest.' }, 200);
+  }
   }
 });
