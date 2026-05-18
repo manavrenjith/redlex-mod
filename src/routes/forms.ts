@@ -277,26 +277,6 @@ forms.post('/view-strikes-submit', async (c) => {
   );
   }
 });
-forms.post('/create-redlex-post-submit', async (c) => {
-  {
-  const redlexValues = await c.req.json<{ title?: string }>();
-  const redlexTitle = redlexValues.title ?? '⚖️ RedLex — Mod Strike Dashboard';
-
-  try {
-    const redlexSub = await reddit.getCurrentSubreddit();
-    await reddit.submitPost({
-  subredditName: redlexSub.name,
-  title: redlexTitle,
-  text: '⚖️ This is the RedLex Strike Dashboard. Use mod actions to look up user strikes.',
-});
-    return c.json<UiResponse>({ showToast: '✅ RedLex dashboard post created!' }, 200);
-  } catch (err) {
-    console.error('Create post error:', err);
-    return c.json<UiResponse>({ showToast: '❌ Failed to create post.' }, 200);
-  }
-  }
-});
-
 forms.post('/view-strikes-result-noop', async (c) => {
   {
   return c.json<UiResponse>({ showToast: '' }, 200);

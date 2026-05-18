@@ -236,31 +236,6 @@ menu.post('/view-strikes', async (c) => {
     200
   );
 });
-menu.post('/create-redlex-post', async (c) => {
-  return c.json<UiResponse>(
-    {
-      showForm: {
-        name: 'createRedlexPost',
-        form: {
-          title: '⚖️ Create RedLex Dashboard',
-          acceptLabel: 'Create',
-          cancelLabel: 'Cancel',
-          fields: [
-            {
-              name: 'title',
-              label: 'Post Title',
-              type: 'string',
-              required: true,
-              defaultValue: '⚖️ RedLex — Mod Strike Dashboard',
-            },
-          ],
-        },
-      },
-    },
-    200
-  );
-});
-
 menu.post('/create-log-post', async (c) => {
   return c.json<UiResponse>(
     {

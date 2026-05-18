@@ -119,7 +119,6 @@
     "addStrikeComment": "/internal/form/add-strike-submit",
     "addStrikePost": "/internal/form/add-strike-submit",
     "viewStrikes": "/internal/form/view-strikes-submit",
-    "createRedlexPost": "/internal/form/create-redlex-post-submit",
     "viewStrikesResult": "/internal/form/view-strikes-result-noop",
     "addShiftNote": "/internal/form/add-shift-note-submit",
     "viewShiftNotes": "/internal/form/view-shift-notes-submit",
