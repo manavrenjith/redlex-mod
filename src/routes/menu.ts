@@ -497,6 +497,21 @@ menu.post('/setup-digest', async (c) => {
               type: 'boolean' as const,
               defaultValue: true,
             },
+            {
+              name: 'useAI',
+              label: 'Use AI Summary (requires OpenAI API key)',
+              type: 'boolean' as const,
+              defaultValue: false,
+              helpText: 'Enable for smarter, more engaging digest summaries',
+            },
+            {
+              name: 'openAIKey',
+              label: 'OpenAI API Key (optional)',
+              type: 'string' as const,
+              required: false,
+              helpText:
+                'Get your key from platform.openai.com. Leave blank to use template mode.',
+            },
           ],
         },
       },
