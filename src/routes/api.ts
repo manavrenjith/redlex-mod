@@ -148,6 +148,46 @@ export function generateDigestSummary(
   return `This week r/${subredditName} had ${posts.length} posts competing for the top spot. The community showed strong interest in "${topPost.title}" which led the pack with ${topPost.score} upvotes. Discussion was especially lively around "${mostDiscussed.title}" with ${mostDiscussed.comments} comments. Overall the community contributed ${totalUpvotes} upvotes this week — keep it up!`;
 }
 
+export async function callOpenAI(
+  apiKey: string,
+  subredditName: string,
+  posts: Array<{ title: string; score: number; comments: number }>
+): Promise<string> {
+  const prompt = `You are a friendly community manager for r/${subredditName} on Reddit.
+Write an engaging weekly digest summary based on these top posts:
+
+${posts
+  .map(
+    (post, index) =>
+      `${index + 1}. "${post.title}" — ${post.score} upvotes, ${post.comments} comments`
+  )
+  .join('\n')}
+
+Write 3-4 sentences summarizing the week's themes and highlights.
+Be warm, encouraging, and community-focused. Plain text only.`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 200,
+      }),
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content as string;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`OpenAI API call failed: ${message}`);
+  }
+}
+
 export async function postWeeklyDigest(
   subredditName: string,
   summary: string,
