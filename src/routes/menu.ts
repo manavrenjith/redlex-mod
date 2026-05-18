@@ -69,6 +69,10 @@ menu.post('/mop-post', async (c) => {
 // RedLex - Add Strike menu item on comments
 menu.post('/add-strike-comment', async (c) => {
   const request = await c.req.json<MenuItemRequest>();
+  const requestAuthor =
+    (request as { author?: string }).author ??
+    (request as { authorName?: string }).authorName ??
+    (request as { targetAuthor?: string }).targetAuthor;
   return c.json<UiResponse>(
     {
       showForm: {
@@ -83,7 +87,9 @@ menu.post('/add-strike-comment', async (c) => {
               label: 'Username',
               type: 'string',
               required: true,
-              helpText: 'Reddit username of the offender (without u/)',
+              helpText:
+                'Reddit username of the offender (without u/). Username has been pre-filled if available.',
+              defaultValue: requestAuthor ?? '',
             },
             {
               name: 'rule',
@@ -116,7 +122,9 @@ menu.post('/add-strike-comment', async (c) => {
               type: 'string',
               required: false,
               helpText: 'Link to the offending post or comment',
-              defaultValue: '',
+              defaultValue: request.targetId
+                ? `https://reddit.com/comments/${request.targetId}`
+                : '',
             },
           ],
         },
@@ -129,6 +137,11 @@ menu.post('/add-strike-comment', async (c) => {
 // RedLex - Add Strike menu item on posts
 menu.post('/add-strike-post', async (c) => {
   const request = await c.req.json<MenuItemRequest>();
+  const requestAuthor =
+    (request as { author?: string }).author ??
+    (request as { authorName?: string }).authorName ??
+    (request as { targetAuthor?: string }).targetAuthor;
+  const requestPostId = request.targetId?.replace('t3_', '') ?? '';
   return c.json<UiResponse>(
     {
       showForm: {
@@ -143,7 +156,9 @@ menu.post('/add-strike-post', async (c) => {
               label: 'Username',
               type: 'string',
               required: true,
-              helpText: 'Reddit username of the offender (without u/)',
+              helpText:
+                'Reddit username of the offender (without u/). Username has been pre-filled if available.',
+              defaultValue: requestAuthor ?? '',
             },
             {
               name: 'rule',
@@ -176,7 +191,9 @@ menu.post('/add-strike-post', async (c) => {
               type: 'string',
               required: false,
               helpText: 'Link to the offending post or comment',
-              defaultValue: '',
+              defaultValue: requestPostId
+                ? `https://reddit.com/comments/${requestPostId}`
+                : '',
             },
           ],
         },
