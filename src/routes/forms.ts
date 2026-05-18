@@ -505,22 +505,31 @@ forms.post('/setup-digest-submit', async (c) => {
     apiKey?: string;
     postTitle?: string;
     enabled?: boolean;
+    useAI?: boolean;
+    openAIKey?: string;
   }>();
 
   try {
     const sub = await reddit.getCurrentSubreddit();
-    const apiKey = (values.apiKey ?? '').trim();
+    const openAIKey = (values.openAIKey ?? '').trim();
 
-    await redis.set(`digestApiKey:${sub.name}`, apiKey);
+    if (openAIKey) {
+      await redis.set(`digestApiKey:${sub.name}`, openAIKey);
+    }
     await redis.set(
       `digestSettings:${sub.name}`,
       JSON.stringify({
         enabled: Boolean(values.enabled),
         postTitle: values.postTitle ?? '📰 Weekly Community Digest',
+        useAI: Boolean(values.useAI),
       })
     );
 
-    return c.json<UiResponse>({ showToast: '✅ Weekly digest configured!' }, 200);
+    const modeLabel = values.useAI ? 'AI' : 'Template';
+    return c.json<UiResponse>(
+      { showToast: `✅ Digest configured! Mode: ${modeLabel}` },
+      200
+    );
   } catch (err) {
     console.error('Setup digest error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save digest settings.' }, 200);
