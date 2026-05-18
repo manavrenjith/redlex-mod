@@ -537,7 +537,6 @@ forms.post('/view-milestones-result-noop', async (c) => {
 forms.post('/setup-digest-submit', async (c) => {
   {
   const setupValues = await c.req.json<{
-    apiKey?: string;
     postTitle?: string;
     enabled?: boolean;
     useAI?: boolean;

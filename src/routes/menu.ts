@@ -478,13 +478,6 @@ menu.post('/setup-digest', async (c) => {
           cancelLabel: 'Cancel',
           fields: [
             {
-              name: 'apiKey',
-              label: 'Grok API Key',
-              type: 'string' as const,
-              required: true,
-              helpText: 'Get your key from console.x.ai',
-            },
-            {
               name: 'postTitle',
               label: 'Digest Post Title',
               type: 'string' as const,
