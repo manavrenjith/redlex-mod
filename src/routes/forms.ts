@@ -163,7 +163,43 @@ forms.post('/add-strike-submit', async (c) => {
     console.log(
       `✅ Strike saved for u/${strikeUsername} — total strikes: ${strikeStrikes.length}`
     );
-    return c.json<UiResponse>({ showToast: `✅ Strike logged for u/${strikeUsername}` }, 200);
+
+    const strikeSubreddit = await reddit.getCurrentSubreddit();
+    const strikeBody = `Hi u/${strikeUsername},
+
+This is an automated notice from the moderation team of
+r/${strikeSubreddit.name}.
+
+You have received a guideline strike.
+
+━━━━━━━━━━━━━━━━━━ Rule Violated: ${strikeValues.rule} Severity: ${strikeSeverity} Details: ${strikeValues.reason} ━━━━━━━━━━━━━━━━━━
+
+Please review the community rules to avoid further violations.
+Repeated violations may result in further action.
+
+If you believe this was issued in error, please contact the
+mod team via Mod Mail.
+
+This message was sent automatically by RedLex.`;
+
+    try {
+      await reddit.sendPrivateMessage({
+        to: strikeUsername,
+        subject: '⚖️ RedLex — Community Guidelines Notice',
+        text: strikeBody,
+      });
+
+      return c.json<UiResponse>(
+        { showToast: `✅ Strike logged and u/${strikeUsername} has been notified.` },
+        200
+      );
+    } catch (messageErr) {
+      console.error('Strike notification error:', messageErr);
+      return c.json<UiResponse>(
+        { showToast: '✅ Strike logged. (Notification failed)' },
+        200
+      );
+    }
   } catch (err) {
     console.error('Strike submission error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to log strike. Please try again.' }, 200);
