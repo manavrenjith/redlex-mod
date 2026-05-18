@@ -160,18 +160,29 @@ export async function postWeeklyDigest(
 
   const topPosts = posts.slice(0, 3).map((post) => {
     const title = post.title.trim();
-    return `"${title}" — ${post.score} upvotes`;
+    return `"${title}" — ${post.score} upvotes · ${post.comments} comments`;
   });
 
-  const body = `📰 Weekly Community Digest
-Week of ${dateRange}
-${summary}
-━━━━━━━━━━━━━━━━━━
-🔥 Top Posts This Week
+  const totalPosts = posts.length;
+  const topScore = posts.length
+    ? posts.reduce((best, post) => (post.score > best ? post.score : best), 0)
+    : 0;
+  const topComments = posts.length
+    ? posts.reduce((best, post) => (post.comments > best ? post.comments : best), 0)
+    : 0;
 
-${topPosts.join('\n')}
-━━━━━━━━━━━━━━━━━━
-Generated automatically by RedLex`;
+  const body = [
+    '📰 Weekly Community Digest',
+    `Week of ${dateRange}`,
+    summary,
+    '🔥 Top Posts This Week',
+    topPosts.join('\n\n'),
+    '📊 Community Stats',
+    `Total posts this week: ${totalPosts}`,
+    `Most upvoted: ${topScore} points`,
+    `Most discussed: ${topComments} comments`,
+    'Generated automatically by RedLex 🤖',
+  ].join('\n\n');
 
   await reddit.submitPost({
     subredditName,
