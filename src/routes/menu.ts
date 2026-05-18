@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import type { MenuItemRequest, UiResponse } from '@devvit/web/shared';
+import { reddit } from '@devvit/web/server';
+import type { T1, T3 } from '@devvit/shared-types/tid.js';
 import type { FormField } from '@devvit/shared-types/shared/form.js';
 
 export const menu = new Hono();
@@ -69,10 +71,13 @@ menu.post('/mop-post', async (c) => {
 // RedLex - Add Strike menu item on comments
 menu.post('/add-strike-comment', async (c) => {
   const request = await c.req.json<MenuItemRequest>();
-  const requestAuthor =
-    (request as { author?: string }).author ??
-    (request as { authorName?: string }).authorName ??
-    (request as { targetAuthor?: string }).targetAuthor;
+  let authorName = '';
+  try {
+    const comment = await reddit.getCommentById(request.targetId as T1);
+    authorName = comment.authorName ?? '';
+  } catch {
+    authorName = '';
+  }
   return c.json<UiResponse>(
     {
       showForm: {
@@ -89,7 +94,7 @@ menu.post('/add-strike-comment', async (c) => {
               required: true,
               helpText:
                 'Reddit username of the offender (without u/). Username has been pre-filled if available.',
-              defaultValue: requestAuthor ?? '',
+              defaultValue: authorName,
             },
             {
               name: 'rule',
@@ -137,10 +142,13 @@ menu.post('/add-strike-comment', async (c) => {
 // RedLex - Add Strike menu item on posts
 menu.post('/add-strike-post', async (c) => {
   const request = await c.req.json<MenuItemRequest>();
-  const requestAuthor =
-    (request as { author?: string }).author ??
-    (request as { authorName?: string }).authorName ??
-    (request as { targetAuthor?: string }).targetAuthor;
+  let authorName = '';
+  try {
+    const post = await reddit.getPostById(request.targetId as T3);
+    authorName = post.authorName ?? '';
+  } catch {
+    authorName = '';
+  }
   const requestPostId = request.targetId?.replace('t3_', '') ?? '';
   return c.json<UiResponse>(
     {
@@ -158,7 +166,7 @@ menu.post('/add-strike-post', async (c) => {
               required: true,
               helpText:
                 'Reddit username of the offender (without u/). Username has been pre-filled if available.',
-              defaultValue: requestAuthor ?? '',
+              defaultValue: authorName,
             },
             {
               name: 'rule',
