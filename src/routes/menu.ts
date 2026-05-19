@@ -448,16 +448,15 @@ menu.post('/view-milestones', async (c) => {
       showForm: {
         name: 'viewMilestones',
         form: {
-          title: '🎉 Celebrated Milestones',
-          acceptLabel: 'Close',
+          title: '🎉 View Celebrated Milestones',
+          acceptLabel: 'View Milestones',
           cancelLabel: 'Cancel',
           fields: [
             {
               name: 'confirm',
-              label: 'Load milestones',
-              type: 'string',
-              defaultValue: 'yes',
-              required: false,
+              label: 'Click "View" to load all celebrated milestones',
+              type: 'boolean' as const,
+              defaultValue: false,
             },
           ],
         },
