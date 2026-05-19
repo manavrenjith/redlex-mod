@@ -51,13 +51,7 @@
         "forUserType": "moderator",
         "endpoint": "/internal/menu/view-strikes"
       },
-      {
-  "label": "⚖️ Create RedLex Dashboard",
-  "description": "Create a RedLex strike viewer post in this subreddit.",
-  "location": "subreddit",
-  "forUserType": "moderator",
-  "endpoint": "/internal/menu/create-redlex-post"
-},
+     
       {
         "label": "📋 Add Shift Note",
         "location": "subreddit",
