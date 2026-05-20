@@ -568,6 +568,73 @@ forms.post('/add-rule-template-submit', async (c) => {
   }
 });
 
+forms.post('/view-rule-templates-submit', async (c) => {
+  {
+  try {
+    const viewRuleTemplatesSubreddit = await reddit.getCurrentSubreddit();
+    const viewRuleTemplatesKey = `ruleExplainerSettings:${viewRuleTemplatesSubreddit.name}`;
+    const viewRuleTemplatesExisting = await redis.get(viewRuleTemplatesKey);
+
+    const viewRuleTemplatesParsed = viewRuleTemplatesExisting
+      ? (JSON.parse(viewRuleTemplatesExisting) as RuleExplainerSettings)
+      : null;
+
+    if (!viewRuleTemplatesParsed || viewRuleTemplatesParsed.rules.length === 0) {
+      return c.json<UiResponse>(
+        {
+          showForm: {
+            name: 'viewRuleTemplatesResult',
+            form: {
+              title: '📘 Rule Templates',
+              acceptLabel: 'Close',
+              fields: [
+                {
+                  name: 'viewRuleTemplates_empty',
+                  label: 'Rule Templates',
+                  type: 'string' as const,
+                  defaultValue: 'No rule templates added yet',
+                  disabled: true,
+                },
+              ],
+            },
+          },
+        },
+        200
+      );
+    }
+
+    const viewRuleTemplatesFields = viewRuleTemplatesParsed.rules.map(
+      (viewRuleTemplateRule, viewRuleTemplateIndex) => ({
+        name: `viewRuleTemplates_rule_${viewRuleTemplateIndex}`,
+        label: viewRuleTemplateRule.ruleName,
+        type: 'string' as const,
+        defaultValue: `Keyword: ${viewRuleTemplateRule.keyword} | ${
+          (viewRuleTemplateRule.explanation ?? '').slice(0, 80)
+        }...`,
+        disabled: true,
+      })
+    );
+
+    return c.json<UiResponse>(
+      {
+        showForm: {
+          name: 'viewRuleTemplatesResult',
+          form: {
+            title: '📘 Rule Templates',
+            acceptLabel: 'Close',
+            fields: viewRuleTemplatesFields,
+          },
+        },
+      },
+      200
+    );
+  } catch (err) {
+    console.error('View Rule Templates error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to load rule templates.' }, 200);
+  }
+  }
+});
+
 forms.post('/view-milestones-submit', async (c) => {
   {
   try {
