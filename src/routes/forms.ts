@@ -25,6 +25,21 @@ type StrikeFormValues = {
   postUrl?: string;
 };
 
+type RuleTemplate = {
+  id: string;
+  keyword: string;
+  ruleName: string;
+  explanation: string;
+  howToRepost: string;
+};
+
+type RuleExplainerSettings = {
+  enabled: boolean;
+  rules: RuleTemplate[];
+  defaultMessage: string;
+  signoff: string;
+};
+
 export const forms = new Hono();
 
 const normalizeSeverityInput = (
