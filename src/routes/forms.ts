@@ -531,6 +531,43 @@ forms.post('/configure-rule-explainer-submit', async (c) => {
   }
 });
 
+forms.post('/add-rule-template-submit', async (c) => {
+  {
+  const addRuleTemplateValues = await c.req.json<{
+    addRuleTemplateKeyword?: string;
+    addRuleTemplateRuleName?: string;
+    addRuleTemplateExplanation?: string;
+    addRuleTemplateHowToRepost?: string;
+  }>();
+
+  try {
+    const addRuleTemplateSubreddit = await reddit.getCurrentSubreddit();
+    const addRuleTemplateKey = `ruleExplainerSettings:${addRuleTemplateSubreddit.name}`;
+    const addRuleTemplateExisting = await redis.get(addRuleTemplateKey);
+
+    const addRuleTemplateParsed = addRuleTemplateExisting
+      ? (JSON.parse(addRuleTemplateExisting) as RuleExplainerSettings)
+      : { enabled: false, rules: [], defaultMessage: '', signoff: '' };
+
+    const addRuleTemplateEntry: RuleTemplate = {
+      id: Date.now().toString(),
+      keyword: addRuleTemplateValues.addRuleTemplateKeyword ?? '',
+      ruleName: addRuleTemplateValues.addRuleTemplateRuleName ?? '',
+      explanation: addRuleTemplateValues.addRuleTemplateExplanation ?? '',
+      howToRepost: addRuleTemplateValues.addRuleTemplateHowToRepost ?? '',
+    };
+
+    addRuleTemplateParsed.rules.push(addRuleTemplateEntry);
+    await redis.set(addRuleTemplateKey, JSON.stringify(addRuleTemplateParsed));
+
+    return c.json<UiResponse>({ showToast: 'Rule template added' }, 200);
+  } catch (err) {
+    console.error('Add Rule Template error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to add rule template.' }, 200);
+  }
+  }
+});
+
 forms.post('/view-milestones-submit', async (c) => {
   {
   try {
