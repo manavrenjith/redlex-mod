@@ -635,6 +635,12 @@ forms.post('/view-rule-templates-submit', async (c) => {
   }
 });
 
+forms.post('/view-rule-templates-result', async (c) => {
+  {
+  return c.json<UiResponse>({ showToast: { text: 'Rule templates loaded.' } }, 200);
+  }
+});
+
 forms.post('/view-milestones-submit', async (c) => {
   {
   try {
