@@ -18,6 +18,21 @@ import {
   saveLogEntry,
 } from '../routes/api';
 
+type RuleTemplate = {
+  id: string;
+  keyword: string;
+  ruleName: string;
+  explanation: string;
+  howToRepost: string;
+};
+
+type RuleExplainerSettings = {
+  enabled: boolean;
+  rules: RuleTemplate[];
+  defaultMessage: string;
+  signoff: string;
+};
+
 export const triggers = new Hono();
 
 triggers.post('/on-app-install', async (c) => {
@@ -34,6 +49,11 @@ triggers.post('/on-app-install', async (c) => {
 
 triggers.post('/on-mod-action', async (c) => {
   const input = await c.req.json<OnModActionRequest>();
+  const action = input.action as {
+    type?: string;
+    targetId?: string;
+    details?: string;
+  } | null;
   const rawAction = input.action ?? '';
 
   const mappedAction: string =
@@ -50,6 +70,45 @@ triggers.post('/on-mod-action', async (c) => {
               : rawAction;
 
   const subredditName = input.subreddit?.name;
+  if (action?.type === 'removelink' && subredditName) {
+    try {
+      const viewRuleExplainerKey = `ruleExplainerSettings:${subredditName}`;
+      const viewRuleExplainerRaw = await redis.get(viewRuleExplainerKey);
+      const viewRuleExplainerSettings = viewRuleExplainerRaw
+        ? (JSON.parse(viewRuleExplainerRaw) as RuleExplainerSettings)
+        : null;
+
+      if (viewRuleExplainerSettings && viewRuleExplainerSettings.enabled) {
+        const viewRuleExplainerDetails =
+          typeof action.details === 'string' ? action.details.toLowerCase() : '';
+        const viewRuleExplainerMatch = viewRuleExplainerSettings.rules.find((rule) =>
+          viewRuleExplainerDetails.includes(rule.keyword.toLowerCase())
+        );
+
+        if (viewRuleExplainerMatch && action.targetId) {
+          const viewRuleExplainerPost = await reddit.getPostById(action.targetId as T3);
+          const viewRuleExplainerAuthorName = viewRuleExplainerPost.authorName ?? '';
+          const viewRuleExplainerPostTitle = viewRuleExplainerPost.title ?? '';
+          const viewRuleExplainerSubject = `Your post in r/${subredditName} was removed`;
+          const viewRuleExplainerBody =
+            `Hey u/${viewRuleExplainerAuthorName},\n\n` +
+            `Your post **"${viewRuleExplainerPostTitle}"** was removed because it appears to violate **${viewRuleExplainerMatch.ruleName}**.\n\n` +
+            `**What went wrong:**\n\n${viewRuleExplainerMatch.explanation}\n\n` +
+            `**How to repost correctly:**\n\n${viewRuleExplainerMatch.howToRepost}\n\n` +
+            `If you think this was a mistake, please [message the mods](https://www.reddit.com/message/compose?to=/r/${subredditName}).\n\n` +
+            `${viewRuleExplainerSettings.signoff}`;
+
+          await reddit.sendPrivateMessage({
+            to: viewRuleExplainerAuthorName,
+            subject: viewRuleExplainerSubject,
+            text: viewRuleExplainerBody,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Rule explainer DM error:', err);
+    }
+  }
   if (subredditName) {
     await saveLogEntry(subredditName, {
       id: crypto.randomUUID(),

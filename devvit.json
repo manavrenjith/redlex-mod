@@ -78,6 +78,24 @@
         "endpoint": "/internal/menu/create-log-post"
       },
       {
+        "label": "⚙️ Configure Rule Explainer",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/configure-rule-explainer"
+      },
+      {
+        "label": "📋 Add Rule Template",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/add-rule-template"
+      },
+      {
+        "label": "📋 View Rule Templates",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/view-rule-templates"
+      },
+      {
         "label": "🎉 Configure Milestones",
         "description": "Set up automatic celebration posts for subscriber milestones.",
         "location": "subreddit",
@@ -119,6 +137,9 @@
     "viewShiftNotesResult": "/internal/form/view-shift-notes-result-noop",
     "resolveShiftNote": "/internal/form/resolve-shift-note-submit",
     "createLogPost": "/internal/form/create-log-post-submit",
+    "configureRuleExplainer": "/internal/form/configure-rule-explainer-submit",
+    "addRuleTemplate": "/internal/form/add-rule-template-submit",
+    "viewRuleTemplates": "/internal/form/view-rule-templates-submit",
     "configureMilestones": "/internal/form/configure-milestones-submit",
     "viewMilestones": "/internal/form/view-milestones-submit",
     "viewMilestonesResult": "/internal/form/view-milestones-result-noop",
