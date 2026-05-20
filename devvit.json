@@ -140,6 +140,7 @@
     "configureRuleExplainer": "/internal/form/configure-rule-explainer-submit",
     "addRuleTemplate": "/internal/form/add-rule-template-submit",
     "viewRuleTemplates": "/internal/form/view-rule-templates-submit",
+    "viewRuleTemplatesResult": "/internal/form/view-rule-templates-result",
     "configureMilestones": "/internal/form/configure-milestones-submit",
     "viewMilestones": "/internal/form/view-milestones-submit",
     "viewMilestonesResult": "/internal/form/view-milestones-result-noop",
