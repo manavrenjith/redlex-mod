@@ -345,6 +345,108 @@ menu.post('/resolve-shift-note', async (c) => {
   );
 });
 
+menu.post('/configure-rule-explainer', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'configureRuleExplainer',
+        form: {
+          title: '⚙️ Configure Rule Explainer',
+          acceptLabel: 'Save Settings',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'configureRuleExplainerEnabled',
+              label: 'Enable Rule Explainer',
+              type: 'boolean',
+              defaultValue: true,
+            },
+            {
+              name: 'configureRuleExplainerDefault',
+              label: 'Default message (used when no rule matches)',
+              type: 'paragraph',
+              required: true,
+            },
+            {
+              name: 'configureRuleExplainerSignoff',
+              label: 'Signoff line (e.g. — The mod team)',
+              type: 'string',
+              required: true,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+menu.post('/add-rule-template', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'addRuleTemplate',
+        form: {
+          title: '📋 Add Rule Template',
+          acceptLabel: 'Add Template',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'addRuleTemplateKeyword',
+              label: 'Keyword (matched against removal reason, case-insensitive)',
+              type: 'string',
+              required: true,
+            },
+            {
+              name: 'addRuleTemplateRuleName',
+              label: 'Rule name (e.g. Rule 3 — No self-promotion)',
+              type: 'string',
+              required: true,
+            },
+            {
+              name: 'addRuleTemplateExplanation',
+              label: 'Friendly explanation of what went wrong',
+              type: 'paragraph',
+              required: true,
+            },
+            {
+              name: 'addRuleTemplateHowToRepost',
+              label: 'Step-by-step how to repost correctly',
+              type: 'paragraph',
+              required: true,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+menu.post('/view-rule-templates', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'viewRuleTemplates',
+        form: {
+          title: '📋 View Rule Templates',
+          acceptLabel: 'View',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'confirm',
+              label: 'Load rule templates',
+              type: 'string',
+              defaultValue: 'yes',
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
 menu.post('/internal/menu/create-log-post', async (c) => {
   return c.json<UiResponse>(
     {
