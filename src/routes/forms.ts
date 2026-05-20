@@ -497,6 +497,40 @@ forms.post('/configure-milestones-submit', async (c) => {
   }
 });
 
+forms.post('/configure-rule-explainer-submit', async (c) => {
+  {
+  const configureRuleExplainerValues = await c.req.json<{
+    configureRuleExplainerEnabled?: boolean;
+    configureRuleExplainerDefault?: string;
+    configureRuleExplainerSignoff?: string;
+  }>();
+
+  try {
+    const configureRuleExplainerSubreddit = await reddit.getCurrentSubreddit();
+    const configureRuleExplainerKey = `ruleExplainerSettings:${configureRuleExplainerSubreddit.name}`;
+    const configureRuleExplainerExisting = await redis.get(configureRuleExplainerKey);
+
+    const configureRuleExplainerParsed = configureRuleExplainerExisting
+      ? (JSON.parse(configureRuleExplainerExisting) as RuleExplainerSettings)
+      : { enabled: false, rules: [], defaultMessage: '', signoff: '' };
+
+    const configureRuleExplainerUpdated: RuleExplainerSettings = {
+      ...configureRuleExplainerParsed,
+      enabled: Boolean(configureRuleExplainerValues.configureRuleExplainerEnabled),
+      defaultMessage: configureRuleExplainerValues.configureRuleExplainerDefault ?? '',
+      signoff: configureRuleExplainerValues.configureRuleExplainerSignoff ?? '',
+    };
+
+    await redis.set(configureRuleExplainerKey, JSON.stringify(configureRuleExplainerUpdated));
+
+    return c.json<UiResponse>({ showToast: 'Rule Explainer settings saved' }, 200);
+  } catch (err) {
+    console.error('Configure Rule Explainer error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to save settings.' }, 200);
+  }
+  }
+});
+
 forms.post('/view-milestones-submit', async (c) => {
   {
   try {
