@@ -1,94 +1,171 @@
-# Devvit Mod Tool Template
+# RedLex — Reddit Moderation Toolkit
 
-A template for building Reddit moderation tools using Devvit web. This template provides a complete foundation for creating custom moderation tools with bulk comment management capabilities.
+A comprehensive moderation suite built with Devvit for the Reddit Mod Tools Hackathon. RedLex combines seven moderation features into a single app, giving mod teams everything they need to manage communities effectively.
 
 ## Features
 
-This template includes a working mod tool called **"Mop"** that demonstrates:
+RedLex includes seven fully working mod tools:
 
-- **Bulk Comment Management**: Remove or lock multiple comments at once
-- **Thread-level Actions**: "Mop comments" - Remove/lock a comment and all its replies
-- **Post-level Actions**: "Mop post comments" - Remove/lock all comments on a post
-- **Flexible Options**:
-  - Remove comments, lock comments, or both
-  - Skip distinguished comments (moderator/admin posts)
-- **Permission Checks**: Only moderators with proper permissions can use the tool
-- **User-friendly Forms**: Interactive forms with clear options and validation
+### ⚖️ Strike Ledger
+Track rule violations per user with a structured strike system.
+
+- Add a strike via right-click on any post or comment
+- Username and post URL are auto-prefilled from context
+- Severity levels: warning, minor, major
+- User receives a private message notification on every strike
+- View full strike history per user from the post or subreddit menu
+
+### 📋 Shift Handoff Notes
+Leave notes between mod shifts so nothing gets missed.
+
+- Add a note with a text body and priority (normal / urgent)
+- View all unresolved notes at a glance
+- Resolve notes by ID once handled
+- Notes stored per subreddit
+
+### 📜 Transparency Log
+Automatically log every mod action to a public post in the subreddit.
+
+- Hooks into the `onModAction` trigger — no manual logging needed
+- Creates and maintains a single pinned log post
+- Post body is updated live with each new action
+- Action emoji mapping: `removelink` → 📛, `removecomment` → 💬, `banuser` → 🔨, `approvelink` → ✅
+
+### 🎉 Community Milestones
+Celebrate subscriber milestones automatically.
+
+- Configure which subscriber counts to celebrate (e.g. 100, 500, 1000)
+- Milestone check runs on every new post submission via `onPostSubmit`
+- Posts a celebration thread when a milestone is hit
+- Each milestone is only ever celebrated once
+
+### 📊 Mod Action Digest
+Weekly summary of mod activity across the whole team.
+
+- Tracks every mod action with the acting moderator's name
+- Scheduler fires every Monday at 9AM
+- Groups actions by moderator and counts each action type
+- Posts a formatted digest to the subreddit
+- Manual "Generate Digest Now" option for on-demand reports
+
+### 📰 Weekly Community Digest
+Weekly roundup of top community content — with optional AI summaries.
+
+- Two modes: AI (OpenAI GPT-3.5 Turbo) or Template
+- Fetches the week's top posts from the subreddit
+- AI mode calls `api.openai.com` and generates a natural language summary
+- Template mode builds a smart digest locally — no API key needed
+- Weekly scheduler + manual trigger
+- Setup form to configure your OpenAI API key and preferred mode
+
+### 💬 Rule Explainer
+Automatically send a friendly DM to users when their post is removed.
+
+- Triggers on every `removelink` mod action via `onModAction`
+- Matches the removal reason against configurable rule templates using keyword matching
+- Falls back to a default message if no template matches
+- DM explains exactly which rule was broken and how to repost correctly
+- Fully configurable: enable/disable, custom signoff, per-rule templates
+- Add and view rule templates directly from the subreddit menu
 
 ## Tech Stack
 
-- [Devvit](https://developers.reddit.com/): Reddit's platform for building and deploying apps
-- [Vite](https://vite.dev/): Fast build tool for the web components
-- [Hono](https://hono.dev/): Lightweight web framework for backend logic
-- [TypeScript](https://www.typescriptlang.org/): Type-safe development
+- [Devvit](https://developers.reddit.com/) — Reddit's platform for building and deploying apps
+- [Hono](https://hono.dev/) — Lightweight web framework for backend logic
+- [Vite](https://vite.dev/) — Fast build tool
+- [TypeScript](https://www.typescriptlang.org/) — Type-safe development
+- [Redis](https://developers.reddit.com/docs/redis) — Persistent storage via `@devvit/web/server`
+- [OpenAI GPT-3.5 Turbo](https://platform.openai.com/) — Optional AI summaries for the weekly digest
 
 ## Getting Started
 
-1. **Clone this template** or use it as a starting point for your mod tool
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-3. **Configure your app** in `devvit.json`:
-   - Update the app name
-   - Set your development subreddit
-4. **Start developing**:
-   ```bash
-   npm run dev
-   ```
-5. **Test your changes** in your development subreddit
+1. Install the Devvit CLI:
+
+```bash
+npm install -g devvit
+```
+
+2. Clone this repo and install dependencies:
+
+```bash
+git clone https://github.com/Dry_Finance_1240/redlex-mod
+cd redlex-mod
+npm install
+```
+
+3. Configure your app in `devvit.json`:
+   - Update the app name if forking
+   - Set your development subreddit under `"dev"`
+
+4. Start developing:
+
+```bash
+npm run dev
+```
+
+5. Upload and test in your development subreddit:
+
+```bash
+devvit upload
+```
+
+6. Hard refresh Reddit (Ctrl+Shift+R) after each upload so menu items update.
 
 ## Project Structure
 
 ```
 src/
-├── index.ts          # Main server setup with Hono routes
+├── index.ts              # Hono server entry point
 ├── core/
-│   └── nuke.ts       # Core moderation logic for bulk operations
+│   └── nuke.ts           # Bulk comment removal (Mop feature)
 └── routes/
-    ├── api.ts        # Public API endpoints
-    ├── forms.ts      # Form submission handlers
-    ├── menu.ts       # Context menu item handlers
-    └── triggers.ts   # App lifecycle triggers
+    ├── api.ts            # Public API endpoints
+    ├── forms.ts          # All form submission handlers
+    ├── menu.ts           # Context menu item handlers
+    └── triggers.ts       # onModAction, onPostSubmit, onAppInstall
 ```
-
-## Customizing Your Mod Tool
-
-This template is designed to be easily customizable:
-
-1. **Modify existing actions**: Edit the nuke functionality in `src/core/nuke.ts`
-2. **Add new menu items**: Update `devvit.json` and add handlers in `src/routes/menu.ts`
-3. **Create new forms**: Add form definitions and handlers in `src/routes/forms.ts`
-4. **Add API endpoints**: Extend `src/routes/api.ts` for external integrations
 
 ## Commands
 
-- `npm run dev`: Starts development mode with live reload on your test subreddit
-- `npm run build`: Builds your mod tool for production
-- `npm run deploy`: Uploads a new version of your app to Reddit
-- `npm run launch`: Publishes your app for review and public use
-- `npm run login`: Authenticates your CLI with Reddit
-- `npm run type-check`: Runs TypeScript type checking, linting, and formatting
+- `npm run dev` — Watch mode with live rebuild
+- `npm run build` — Production build
+- `devvit upload` — Upload a new version to Reddit
+- `devvit logs r/your_subreddit` — Stream live logs from your app
 
 ## How It Works
 
-The template demonstrates Reddit mod tool development through the "Mop" feature:
+All features are accessed through Reddit's native context menus — no external UI or webview required.
 
-1. **Context Menu Integration**: Click on the Mod Shield icon in a comment to see custom mod actions
-2. **Permission Validation**: Automatically checks if the user has moderation permissions
-3. **Interactive Forms**: Presents options through Reddit's native form system
-4. **Reddit API**: Processes multiple comments using Reddit's API
+**Post or comment menu**
+- Right-click a post or comment to add a strike or view a user's strike history
+
+**Subreddit menu**
+- Access shift notes, transparency log, milestones, digests, and rule explainer config from the subreddit mod menu
+
+**Automatic triggers**
+- `onModAction` — powers the transparency log and rule explainer DMs
+- `onPostSubmit` — powers the milestone checker
+- Scheduled tasks — fire the mod digest and community digest every Monday at 9AM
 
 ## Development Notes
 
-- **Permissions**: The app requires `reddit: true` permission to access Reddit's API
-- **User Types**: Menu items are restricted to `moderator` user type
+- All persistent state lives in Redis — no external database needed
+- External API calls are restricted by Devvit; only `api.openai.com` is on the allowlist
+- `select` field values from forms come back as arrays — always normalize with `Array.isArray()`
+- `getTopPosts()` returns a `Listing` — call `.all()` to convert to an array
+- `TaskRequest` has no subreddit property — use `context.subredditName` instead
 
 ## Deployment
 
 1. Test thoroughly in your development subreddit
-2. Run `npm run deploy` to upload your app
-3. Use `npm run launch` to submit for Reddit's app review process
-4. Once approved, users can install your mod tool from Reddit's app directory
+2. Run `devvit upload` to upload your app
+3. Once ready, submit for Reddit's app review process
+4. Once approved, other communities can install RedLex from Reddit's app directory
 
-This template provides everything you need to build powerful, user-friendly moderation tools for Reddit communities.
+## Test Subreddit
+
+[r/redlex_mod_dev](https://www.reddit.com/r/redlex_mod_dev)
+
+## License
+
+MIT
