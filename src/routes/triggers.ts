@@ -119,11 +119,6 @@ triggers.post('/on-mod-action', async (c) => {
     const logPostId = await redis.get(`logPostId:${subredditName}`);
     if (logPostId) {
       const entries = await getLogEntries(subredditName);
-      const updatedAt = new Date().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-
       const friendlyAction = (action: string): string => {
         switch (action) {
           case 'removePost':
@@ -157,27 +152,35 @@ triggers.post('/on-mod-action', async (c) => {
         }
       };
 
-      const lines = entries
-        .slice(-30)
-        .reverse()
-        .map((entry) => {
-          const date = entry.createdAt
-            ? new Date(entry.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              })
-            : 'Unknown date';
-          return `${actionEmoji(entry.action)} ${friendlyAction(
+      const lines: string[] = [];
+      entries.slice(-30).forEach((entry) => {
+        const date = entry.createdAt
+          ? new Date(entry.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })
+          : 'Unknown date';
+        const modName = (entry as { modName?: string }).modName ?? 'unknown';
+        lines.unshift(
+          `| ${actionEmoji(entry.action)} | ${friendlyAction(
             entry.action
-          )} · ${date}`;
-        });
+          )} | u/${modName} | ${date} |`
+        );
+      });
+
+      const table = [
+        '| Action | Type | Moderator | Date |',
+        '|--------|------|-----------|------|',
+        ...lines,
+      ].join('\n');
 
       const body = [
-        '📋 RedLex Mod Action Log',
-        `Last updated: ${updatedAt}`,
-        ...lines,
-        'This log is maintained automatically by RedLex.',
-      ].join('\n');
+        '## 📋 RedLex — Mod Action Log',
+        '---',
+        table,
+        '---',
+        '> 🤖 This log is maintained automatically by RedLex.',
+      ].join('\n\n');
 
       const post = await reddit.getPostById(logPostId as T3);
       await post.edit({ text: body });
