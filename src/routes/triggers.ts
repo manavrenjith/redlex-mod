@@ -49,23 +49,20 @@ triggers.post('/on-app-install', async (c) => {
 
 triggers.post('/on-mod-action', async (c) => {
   const input = await c.req.json<OnModActionRequest>();
-  const action = input.action as {
+  const event = input;
+  const SKIP_ACTIONS = ['dev_platform_app_changed'];
+  if (SKIP_ACTIONS.includes(event.action?.action ?? '')) {
+    return c.json<TriggerResponse>({ status: 'success' }, 200);
+  }
+
+  const action = event.action as {
     action?: string;
     type?: string;
     targetId?: string;
     details?: string;
     moderator?: { name?: string; id?: string };
   } | null;
-  const rawAction = action?.action ?? action?.type ?? '';
-  const skipLogging = action?.action === 'dev_platform_app_changed';
-
-  const toTitleCase = (value: string): string =>
-    value
-      .replace(/[_-]+/g, ' ')
-      .toLowerCase()
-      .replace(/\b\w/g, (match) => match.toUpperCase());
-
-  const actionLabelMap: Record<string, string> = {
+  const ACTION_LABELS: Record<string, string> = {
     removelink: '📛 Post Removed',
     removecomment: '💬 Comment Removed',
     banuser: '🔨 User Banned',
@@ -76,13 +73,10 @@ triggers.post('/on-mod-action', async (c) => {
     sticky: '📌 Stickied',
     addremovalreason: '📋 Removal Reason Added',
   };
+  const rawAction = event.action?.action ?? '';
+  const actionLabel = ACTION_LABELS[rawAction] ?? rawAction;
 
-  const toActionLabel = (value: string): string => {
-    const normalized = value.toLowerCase();
-    return actionLabelMap[normalized] ?? toTitleCase(value);
-  };
-
-  const subredditName = input.subreddit?.name;
+  const subredditName = event.subreddit?.name;
   if (action?.type === 'removelink' && subredditName) {
     try {
       const viewRuleExplainerKey = `ruleExplainerSettings:${subredditName}`;
@@ -122,13 +116,16 @@ triggers.post('/on-mod-action', async (c) => {
       console.error('Rule explainer DM error:', err);
     }
   }
-  if (subredditName && !skipLogging) {
-    const modName = action?.moderator?.name ?? action?.moderator?.id ?? 'unknown';
+  if (subredditName) {
+    const moderatorName =
+      event.action?.moderator?.name ??
+      event.action?.moderator?.id ??
+      'unknown';
     await saveLogEntry(subredditName, {
       id: crypto.randomUUID(),
-      action: toActionLabel(rawAction || 'unknown'),
+      action: actionLabel,
       createdAt: new Date().toISOString(),
-      modName,
+      modName: moderatorName,
     } as unknown as { id: string; action: string; createdAt: string });
 
     const logPostId = await redis.get(`logPostId:${subredditName}`);
@@ -151,8 +148,8 @@ triggers.post('/on-mod-action', async (c) => {
             })
           : 'Unknown date';
         const modName = (entry as { modName?: string }).modName ?? 'unknown';
-        const label = toActionLabel(entry.action);
-        const split = splitActionLabel(label);
+        const entryLabel = ACTION_LABELS[entry.action] ?? entry.action;
+        const split = splitActionLabel(entryLabel);
         lines.unshift(
           `| ${split.emoji} | ${split.text} | u/${modName} | ${date} |`
         );
