@@ -1,21 +1,12 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
-import { context, redis, reddit } from '@devvit/web/server';
-import { isT1, isT3 } from '@devvit/shared-types/tid.js';
-import { handleNuke, handleNukePost } from '../core/nuke';
+import { redis, reddit } from '@devvit/web/server';
 import {
   buildDigestContent,
   getCelebratedMilestones,
   postWeeklyDigest,
   saveMilestoneSettings,
 } from '../routes/api';
-
-type NukeFormValues = {
-  remove?: boolean;
-  lock?: boolean;
-  skipDistinguished?: boolean;
-  targetId?: string;
-};
 
 type StrikeFormValues = {
   username?: string;
@@ -71,75 +62,6 @@ const formatSeverityLabel = (severity: unknown): string => {
 
   return 'UNKNOWN';
 };
-
-const normalizeValues = (values: NukeFormValues) => ({
-  remove: Boolean(values.remove),
-  lock: Boolean(values.lock),
-  skipDistinguished: Boolean(values.skipDistinguished),
-});
-
-const getTargetId = (values: NukeFormValues) => {
-  if (typeof values.targetId === 'string' && values.targetId.trim()) {
-    return values.targetId.trim();
-  }
-  return context.postId;
-};
-
-forms.post('/mop-comment-submit', async (c) => {
-  {
-  const mopCommentValues = await c.req.json<NukeFormValues>();
-  const mopCommentNormalized = normalizeValues(mopCommentValues);
-
-  if (!mopCommentNormalized.lock && !mopCommentNormalized.remove) {
-    return c.json<UiResponse>({ showToast: 'You must select either lock or remove.' }, 200);
-  }
-
-  const mopCommentTargetId = getTargetId(mopCommentValues);
-  if (!isT1(mopCommentTargetId)) {
-    return c.json<UiResponse>({ showToast: 'Mop failed! Please try again later.' }, 200);
-  }
-
-  const mopCommentResult = await handleNuke({
-    ...mopCommentNormalized,
-    commentId: mopCommentTargetId,
-    subredditId: context.subredditId,
-  });
-
-  return c.json<UiResponse>(
-    {
-      showToast: `${mopCommentResult.success ? 'Success' : 'Failed'} : ${mopCommentResult.message}`,
-    },
-    200
-  );
-  }
-});
-
-forms.post('/mop-post-submit', async (c) => {
-  {
-  const mopPostValues = await c.req.json<NukeFormValues>();
-  const mopPostNormalized = normalizeValues(mopPostValues);
-
-  if (!mopPostNormalized.lock && !mopPostNormalized.remove) {
-    return c.json<UiResponse>({ showToast: 'You must select either lock or remove.' }, 200);
-  }
-
-  const mopPostTargetId = getTargetId(mopPostValues);
-  if (!isT3(mopPostTargetId)) {
-    return c.json<UiResponse>({ showToast: 'Mop failed! Please try again later.' }, 200);
-  }
-
-  const mopPostResult = await handleNukePost({
-    ...mopPostNormalized,
-    postId: mopPostTargetId,
-    subredditId: context.subredditId,
-  });
-
-  return c.json<UiResponse>(
-    { showToast: `${mopPostResult.success ? 'Success' : 'Failed'} : ${mopPostResult.message}` },
-    200
-  );
-  }
-});
 
 forms.post('/add-strike-submit', async (c) => {
   {

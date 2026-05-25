@@ -116,8 +116,6 @@ devvit upload
 ```
 src/
 ├── index.ts              # Hono server entry point
-├── core/
-│   └── nuke.ts           # Bulk comment removal (Mop feature)
 └── routes/
     ├── api.ts            # Public API endpoints
     ├── forms.ts          # All form submission handlers
