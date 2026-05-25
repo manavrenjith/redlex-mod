@@ -50,11 +50,6 @@ triggers.post('/on-app-install', async (c) => {
 triggers.post('/on-mod-action', async (c) => {
   const input = await c.req.json<OnModActionRequest>();
   const event = input;
-  const SKIP_ACTIONS = ['dev_platform_app_changed'];
-  if (SKIP_ACTIONS.includes(event.action?.action ?? '')) {
-    return c.json<TriggerResponse>({ status: 'success' }, 200);
-  }
-
   const action = event.action as {
     action?: string;
     type?: string;
@@ -67,6 +62,7 @@ triggers.post('/on-mod-action', async (c) => {
     removecomment: '💬 Comment Removed',
     banuser: '🔨 User Banned',
     approvelink: '✅ Post Approved',
+    dev_platform_app_changed: '🔄 App Updated',
     lock: '🔒 Locked',
     lock_comment: '🔒 Comment Locked',
     distinguish_comment: '⭐ Comment Distinguished',
