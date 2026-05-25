@@ -50,24 +50,37 @@ triggers.post('/on-app-install', async (c) => {
 triggers.post('/on-mod-action', async (c) => {
   const input = await c.req.json<OnModActionRequest>();
   const action = input.action as {
+    action?: string;
     type?: string;
     targetId?: string;
     details?: string;
+    moderator?: { name?: string; id?: string };
   } | null;
-  const rawAction = input.action ?? '';
+  const rawAction = action?.action ?? action?.type ?? '';
+  const skipLogging = action?.action === 'dev_platform_app_changed';
 
-  const mappedAction: string =
-    rawAction === 'removelink'
-      ? 'removePost'
-      : rawAction === 'removecomment'
-        ? 'removeComment'
-        : rawAction === 'banuser'
-          ? 'banUser'
-          : rawAction === 'approvelink'
-            ? 'approvePost'
-            : rawAction === 'approvecomment'
-              ? 'approveComment'
-              : rawAction;
+  const toTitleCase = (value: string): string =>
+    value
+      .replace(/[_-]+/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+
+  const actionLabelMap: Record<string, string> = {
+    removelink: '📛 Post Removed',
+    removecomment: '💬 Comment Removed',
+    banuser: '🔨 User Banned',
+    approvelink: '✅ Post Approved',
+    lock: '🔒 Locked',
+    lock_comment: '🔒 Comment Locked',
+    distinguish_comment: '⭐ Comment Distinguished',
+    sticky: '📌 Stickied',
+    addremovalreason: '📋 Removal Reason Added',
+  };
+
+  const toActionLabel = (value: string): string => {
+    const normalized = value.toLowerCase();
+    return actionLabelMap[normalized] ?? toTitleCase(value);
+  };
 
   const subredditName = input.subreddit?.name;
   if (action?.type === 'removelink' && subredditName) {
@@ -109,47 +122,24 @@ triggers.post('/on-mod-action', async (c) => {
       console.error('Rule explainer DM error:', err);
     }
   }
-  if (subredditName) {
+  if (subredditName && !skipLogging) {
+    const modName = action?.moderator?.name ?? action?.moderator?.id ?? 'unknown';
     await saveLogEntry(subredditName, {
       id: crypto.randomUUID(),
-      action: mappedAction,
+      action: toActionLabel(rawAction || 'unknown'),
       createdAt: new Date().toISOString(),
-    });
+      modName,
+    } as unknown as { id: string; action: string; createdAt: string });
 
     const logPostId = await redis.get(`logPostId:${subredditName}`);
     if (logPostId) {
       const entries = await getLogEntries(subredditName);
-      const friendlyAction = (action: string): string => {
-        switch (action) {
-          case 'removePost':
-            return 'Post removed';
-          case 'removeComment':
-            return 'Comment removed';
-          case 'banUser':
-            return 'User banned';
-          case 'approvePost':
-            return 'Post approved';
-          case 'approveComment':
-            return 'Comment approved';
-          default:
-            return action;
+      const splitActionLabel = (label: string): { emoji: string; text: string } => {
+        const match = label.match(/^([^\w\s]+)\s+(.*)$/);
+        if (!match) {
+          return { emoji: '📝', text: label };
         }
-      };
-
-      const actionEmoji = (action: string): string => {
-        switch (action) {
-          case 'removePost':
-            return '📛';
-          case 'removeComment':
-            return '💬';
-          case 'banUser':
-            return '🔨';
-          case 'approvePost':
-          case 'approveComment':
-            return '✅';
-          default:
-            return '📝';
-        }
+        return { emoji: match[1], text: match[2] };
       };
 
       const lines: string[] = [];
@@ -161,10 +151,10 @@ triggers.post('/on-mod-action', async (c) => {
             })
           : 'Unknown date';
         const modName = (entry as { modName?: string }).modName ?? 'unknown';
+        const label = toActionLabel(entry.action);
+        const split = splitActionLabel(label);
         lines.unshift(
-          `| ${actionEmoji(entry.action)} | ${friendlyAction(
-            entry.action
-          )} | u/${modName} | ${date} |`
+          `| ${split.emoji} | ${split.text} | u/${modName} | ${date} |`
         );
       });
 
