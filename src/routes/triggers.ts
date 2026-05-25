@@ -60,17 +60,28 @@ triggers.post('/on-mod-action', async (c) => {
   const ACTION_LABELS: Record<string, string> = {
     removelink: '📛 Post Removed',
     removecomment: '💬 Comment Removed',
+    removepost: '📛 Post Removed',
     banuser: '🔨 User Banned',
     approvelink: '✅ Post Approved',
+    approvecomment: '✅ Comment Approved',
     dev_platform_app_changed: '🔄 App Updated',
     lock: '🔒 Locked',
     lock_comment: '🔒 Comment Locked',
     distinguish_comment: '⭐ Comment Distinguished',
     sticky: '📌 Stickied',
     addremovalreason: '📋 Removal Reason Added',
+    spamlink: '🚫 Post Marked Spam',
+    spamcomment: '🚫 Comment Marked Spam',
+    unbanuser: '🔓 User Unbanned',
+    muteuser: '🔇 User Muted',
+    unmuteuser: '🔊 User Unmuted',
   };
   const rawAction = event.action?.action ?? '';
-  const actionLabel = ACTION_LABELS[rawAction] ?? rawAction;
+  const actionLabel =
+    ACTION_LABELS[rawAction] ??
+    ACTION_LABELS[rawAction.toLowerCase()] ??
+    rawAction.toLowerCase().replace(/_/g, ' ') ??
+    'Unknown';
 
   const subredditName = event.subreddit?.name;
   if (action?.type === 'removelink' && subredditName) {
@@ -144,7 +155,11 @@ triggers.post('/on-mod-action', async (c) => {
             })
           : 'Unknown date';
         const modName = (entry as { modName?: string }).modName ?? 'unknown';
-        const entryLabel = ACTION_LABELS[entry.action] ?? entry.action;
+        const entryLabel =
+          ACTION_LABELS[entry.action] ??
+          ACTION_LABELS[entry.action.toLowerCase()] ??
+          entry.action.toLowerCase().replace(/_/g, ' ') ??
+          'Unknown';
         const split = splitActionLabel(entryLabel);
         lines.unshift(
           `| ${split.emoji} | ${split.text} | u/${modName} | ${date} |`
