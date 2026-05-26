@@ -18,6 +18,18 @@ import {
   saveLogEntry,
 } from '../routes/api';
 
+// ─── Local type: actual shape of event.action at runtime ─────────────────────
+type ModActionPayload = {
+  action?: string;
+  type?: string;
+  details?: string;
+  targetId?: string;
+  moderator?: {
+    name?: string;
+    id?: string;
+  };
+};
+
 type RuleTemplate = {
   id: string;
   keyword: string;
@@ -33,89 +45,95 @@ type RuleExplainerSettings = {
   signoff: string;
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  removelink:               '📛 Post Removed',
+  removecomment:            '💬 Comment Removed',
+  removepost:               '📛 Post Removed',
+  banuser:                  '🔨 User Banned',
+  approvelink:              '✅ Post Approved',
+  approvecomment:           '✅ Comment Approved',
+  dev_platform_app_changed: '🔄 App Updated',
+  lock:                     '🔒 Locked',
+  lock_comment:             '🔒 Comment Locked',
+  distinguish_comment:      '⭐ Comment Distinguished',
+  sticky:                   '📌 Stickied',
+  addremovalreason:         '📋 Removal Reason Added',
+  spamlink:                 '🚫 Post Marked Spam',
+  spamcomment:              '🚫 Comment Marked Spam',
+  unbanuser:                '🔓 User Unbanned',
+  muteuser:                 '🔇 User Muted',
+  unmuteuser:               '🔊 User Unmuted',
+};
+
+function getActionLabel(raw: string): string {
+  return (
+    ACTION_LABELS[raw] ??
+    ACTION_LABELS[raw.toLowerCase()] ??
+    (raw.toLowerCase().replace(/_/g, ' ') || 'unknown')
+  );
+}
+
+function splitActionLabel(label: string): { emoji: string; text: string } {
+  const match = label.match(/^([^\w\s]+)\s+(.*)$/);
+  if (!match || !match[1] || !match[2]) return { emoji: '📝', text: label };
+  return { emoji: match[1] as string, text: match[2] as string };
+}
+
 export const triggers = new Hono();
 
 triggers.post('/on-app-install', async (c) => {
   const input = await c.req.json<OnAppInstallRequest>();
   console.log('App installed to subreddit: r/' + input.subreddit?.name);
-
-  return c.json<TriggerResponse>(
-    {
-      status: 'success',
-    },
-    200
-  );
+  return c.json<TriggerResponse>({ status: 'success' }, 200);
 });
 
 triggers.post('/on-mod-action', async (c) => {
   const input = await c.req.json<OnModActionRequest>();
-  const event = input;
-  const action = event.action as {
-    action?: string;
-    type?: string;
-    targetId?: string;
-    details?: string;
-    moderator?: { name?: string; id?: string };
-  } | null;
-  const ACTION_LABELS: Record<string, string> = {
-    removelink: '📛 Post Removed',
-    removecomment: '💬 Comment Removed',
-    removepost: '📛 Post Removed',
-    banuser: '🔨 User Banned',
-    approvelink: '✅ Post Approved',
-    approvecomment: '✅ Comment Approved',
-    dev_platform_app_changed: '🔄 App Updated',
-    lock: '🔒 Locked',
-    lock_comment: '🔒 Comment Locked',
-    distinguish_comment: '⭐ Comment Distinguished',
-    sticky: '📌 Stickied',
-    addremovalreason: '📋 Removal Reason Added',
-    spamlink: '🚫 Post Marked Spam',
-    spamcomment: '🚫 Comment Marked Spam',
-    unbanuser: '🔓 User Unbanned',
-    muteuser: '🔇 User Muted',
-    unmuteuser: '🔊 User Unmuted',
-  };
-  const rawAction = event.action?.action ?? '';
-  const actionLabel =
-    ACTION_LABELS[rawAction] ??
-    ACTION_LABELS[rawAction.toLowerCase()] ??
-    rawAction.toLowerCase().replace(/_/g, ' ') ??
-    'Unknown';
 
-  const subredditName = event.subreddit?.name;
-  if (action?.type === 'removelink' && subredditName) {
+  // Cast event.action to our local type — Devvit types it as string but
+  // the actual runtime payload is an object.
+  const modAction = input.action as unknown as ModActionPayload;
+
+  console.log('DEBUG MOD:', JSON.stringify(modAction?.moderator));
+  console.log('DEBUG FULL EVENT:', JSON.stringify(input));
+
+  const rawAction = modAction?.action ?? modAction?.type ?? '';
+  const actionLabel = getActionLabel(rawAction);
+  const subredditName = input.subreddit?.name;
+
+  // ── Rule Explainer DM ────────────────────────────────────────────────────
+  if ((rawAction === 'removelink' || modAction?.type === 'removelink') && subredditName) {
     try {
-      const viewRuleExplainerKey = `ruleExplainerSettings:${subredditName}`;
-      const viewRuleExplainerRaw = await redis.get(viewRuleExplainerKey);
-      const viewRuleExplainerSettings = viewRuleExplainerRaw
-        ? (JSON.parse(viewRuleExplainerRaw) as RuleExplainerSettings)
+      const ruleExplainerKey = `ruleExplainerSettings:${subredditName}`;
+      const ruleExplainerRaw = await redis.get(ruleExplainerKey);
+      const ruleExplainerSettings = ruleExplainerRaw
+        ? (JSON.parse(ruleExplainerRaw) as RuleExplainerSettings)
         : null;
 
-      if (viewRuleExplainerSettings && viewRuleExplainerSettings.enabled) {
-        const viewRuleExplainerDetails =
-          typeof action.details === 'string' ? action.details.toLowerCase() : '';
-        const viewRuleExplainerMatch = viewRuleExplainerSettings.rules.find((rule) =>
-          viewRuleExplainerDetails.includes(rule.keyword.toLowerCase())
+      if (ruleExplainerSettings?.enabled) {
+        const details =
+          typeof modAction?.details === 'string'
+            ? modAction.details.toLowerCase()
+            : '';
+        const matchedRule = ruleExplainerSettings.rules.find((rule) =>
+          details.includes(rule.keyword.toLowerCase())
         );
 
-        if (viewRuleExplainerMatch && action.targetId) {
-          const viewRuleExplainerPost = await reddit.getPostById(action.targetId as T3);
-          const viewRuleExplainerAuthorName = viewRuleExplainerPost.authorName ?? '';
-          const viewRuleExplainerPostTitle = viewRuleExplainerPost.title ?? '';
-          const viewRuleExplainerSubject = `Your post in r/${subredditName} was removed`;
-          const viewRuleExplainerBody =
-            `Hey u/${viewRuleExplainerAuthorName},\n\n` +
-            `Your post **"${viewRuleExplainerPostTitle}"** was removed because it appears to violate **${viewRuleExplainerMatch.ruleName}**.\n\n` +
-            `**What went wrong:**\n\n${viewRuleExplainerMatch.explanation}\n\n` +
-            `**How to repost correctly:**\n\n${viewRuleExplainerMatch.howToRepost}\n\n` +
-            `If you think this was a mistake, please [message the mods](https://www.reddit.com/message/compose?to=/r/${subredditName}).\n\n` +
-            `${viewRuleExplainerSettings.signoff}`;
+        if (matchedRule && modAction?.targetId) {
+          const post = await reddit.getPostById(modAction.targetId as T3);
+          const authorName = post.authorName ?? '';
+          const postTitle = post.title ?? '';
 
           await reddit.sendPrivateMessage({
-            to: viewRuleExplainerAuthorName,
-            subject: viewRuleExplainerSubject,
-            text: viewRuleExplainerBody,
+            to: authorName,
+            subject: `Your post in r/${subredditName} was removed`,
+            text:
+              `Hey u/${authorName},\n\n` +
+              `Your post **"${postTitle}"** was removed because it appears to violate **${matchedRule.ruleName}**.\n\n` +
+              `**What went wrong:**\n\n${matchedRule.explanation}\n\n` +
+              `**How to repost correctly:**\n\n${matchedRule.howToRepost}\n\n` +
+              `If you think this was a mistake, please [message the mods](https://www.reddit.com/message/compose?to=/r/${subredditName}).\n\n` +
+              `${ruleExplainerSettings.signoff}`,
           });
         }
       }
@@ -123,11 +141,14 @@ triggers.post('/on-mod-action', async (c) => {
       console.error('Rule explainer DM error:', err);
     }
   }
+
+  // ── Transparency Log ─────────────────────────────────────────────────────
   if (subredditName) {
     const moderatorName =
-      event.action?.moderator?.name ??
-      event.action?.moderator?.id ??
+      modAction?.moderator?.name ??
+      modAction?.moderator?.id ??
       'unknown';
+
     await saveLogEntry(subredditName, {
       id: crypto.randomUUID(),
       action: actionLabel,
@@ -138,13 +159,6 @@ triggers.post('/on-mod-action', async (c) => {
     const logPostId = await redis.get(`logPostId:${subredditName}`);
     if (logPostId) {
       const entries = await getLogEntries(subredditName);
-      const splitActionLabel = (label: string): { emoji: string; text: string } => {
-        const match = label.match(/^([^\w\s]+)\s+(.*)$/);
-        if (!match) {
-          return { emoji: '📝', text: label };
-        }
-        return { emoji: match[1], text: match[2] };
-      };
 
       const lines: string[] = [];
       entries.slice(-30).forEach((entry) => {
@@ -155,15 +169,9 @@ triggers.post('/on-mod-action', async (c) => {
             })
           : 'Unknown date';
         const modName = (entry as { modName?: string }).modName ?? 'unknown';
-        const entryLabel =
-          ACTION_LABELS[entry.action] ??
-          ACTION_LABELS[entry.action.toLowerCase()] ??
-          entry.action.toLowerCase().replace(/_/g, ' ') ??
-          'Unknown';
+        const entryLabel = getActionLabel(entry.action);
         const split = splitActionLabel(entryLabel);
-        lines.unshift(
-          `| ${split.emoji} | ${split.text} | u/${modName} | ${date} |`
-        );
+        lines.unshift(`| ${split.emoji} | ${split.text} | u/${modName} | ${date} |`);
       });
 
       const table = [
@@ -180,8 +188,8 @@ triggers.post('/on-mod-action', async (c) => {
         '> 🤖 This log is maintained automatically by RedLex.',
       ].join('\n\n');
 
-      const post = await reddit.getPostById(logPostId as T3);
-      await post.edit({ text: body });
+      const logPost = await reddit.getPostById(logPostId as T3);
+      await logPost.edit({ text: body });
     }
   }
 
@@ -221,11 +229,7 @@ triggers.post('/on-post-submit', async (c) => {
     const title = settings.postTitle.replace('{count}', formattedCount);
     const body = settings.postBody.replace('{count}', formattedCount);
 
-    await reddit.submitPost({
-      subredditName,
-      title,
-      text: body,
-    });
+    await reddit.submitPost({ subredditName, title, text: body });
 
     await saveCelebratedMilestone(subredditName, {
       id: crypto.randomUUID(),
