@@ -50,13 +50,16 @@ Celebrate subscriber milestones automatically.
 - Each milestone is only ever celebrated once
 
 ### 📊 Mod Action Digest
-Weekly summary of mod activity across the whole team.
 
-- Tracks every mod action with the acting moderator's name
-- Scheduler fires every Monday at 9AM
-- Groups actions by moderator and counts each action type
-- Posts a formatted digest to the subreddit
-- Manual "Generate Digest Now" option for on-demand reports
+A weekly summary of mod team activity, posted automatically.
+
+- Tracks every mod action with the acting moderator's name via the onModAction trigger
+- Groups actions by moderator and counts each type (removals, bans, approvals)
+- Two modes: AI (OpenAI GPT-3.5 Turbo) for a natural language summary, or Template for a clean markdown table with no API key needed
+- Posts a formatted digest to the subreddit every Monday at 9AM via the scheduler
+- Manual "Generate Digest Now" option for on-demand reports at any time
+- Configure post title, AI mode, and OpenAI API key via the Configure Mod Digest menu item
+- Resets the action log after each digest so each week starts fresh
 
 
 
