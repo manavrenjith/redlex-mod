@@ -15,6 +15,16 @@ Track rule violations per user with a structured strike system.
 - User receives a private message notification on every strike
 - View full strike history per user from the post or subreddit menu
 
+### 📰 Weekly Community Digest
+Weekly roundup of top community content — with optional AI summaries.
+
+- Two modes: AI (OpenAI GPT-3.5 Turbo) or Template
+- Fetches the week's top posts from the subreddit
+- AI mode calls `api.openai.com` and generates a natural language summary
+- Template mode builds a smart digest locally — no API key needed
+- Weekly scheduler + manual trigger
+- Setup form to configure your OpenAI API key and preferred mode
+
 ### 📋 Shift Handoff Notes
 Leave notes between mod shifts so nothing gets missed.
 
@@ -48,15 +58,7 @@ Weekly summary of mod activity across the whole team.
 - Posts a formatted digest to the subreddit
 - Manual "Generate Digest Now" option for on-demand reports
 
-### 📰 Weekly Community Digest
-Weekly roundup of top community content — with optional AI summaries.
 
-- Two modes: AI (OpenAI GPT-3.5 Turbo) or Template
-- Fetches the week's top posts from the subreddit
-- AI mode calls `api.openai.com` and generates a natural language summary
-- Template mode builds a smart digest locally — no API key needed
-- Weekly scheduler + manual trigger
-- Setup form to configure your OpenAI API key and preferred mode
 
 ### 💬 Rule Explainer
 Automatically send a friendly DM to users when their post is removed.
