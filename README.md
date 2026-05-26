@@ -164,6 +164,3 @@ All features are accessed through Reddit's native context menus — no external 
 
 [r/redlex_mod_dev](https://www.reddit.com/r/redlex_mod_dev)
 
-## License
-
-MIT
