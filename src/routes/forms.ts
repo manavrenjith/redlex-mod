@@ -31,6 +31,18 @@ type RuleExplainerSettings = {
   signoff: string;
 };
 
+type ModDigestSettings = {
+  enabled: boolean;
+  postTitle: string;
+  useAI: boolean;
+  apiKey: string;
+};
+
+type ModAction = {
+  action?: string;
+  modName?: string;
+};
+
 export const forms = new Hono();
 
 const normalizeSeverityInput = (
@@ -62,6 +74,125 @@ const formatSeverityLabel = (severity: unknown): string => {
 
   return 'UNKNOWN';
 };
+
+export async function generateModDigestPost(subredditName: string): Promise<void> {
+  try {
+    const rawActions = await redis.get(`modActions:${subredditName}`);
+    const actions: ModAction[] = rawActions ? JSON.parse(rawActions) : [];
+
+    if (actions.length === 0) {
+      return;
+    }
+
+    const rawSettings = await redis.get(`digestSettings:${subredditName}`);
+    const settingsDefaults: ModDigestSettings = {
+      enabled: true,
+      postTitle: '📊 RedLex — Weekly Mod Digest',
+      useAI: false,
+      apiKey: '',
+    };
+    const parsedSettings = rawSettings
+      ? (JSON.parse(rawSettings) as Partial<ModDigestSettings>)
+      : {};
+    const settings: ModDigestSettings = {
+      ...settingsDefaults,
+      ...parsedSettings,
+    };
+
+    const totalsByMod = new Map<
+      string,
+      { removes: number; bans: number; approvals: number; total: number }
+    >();
+
+    actions.forEach((action) => {
+      const modName = action.modName ?? 'unknown';
+      const actionLabel = (action.action ?? '').toLowerCase();
+      let field: 'removes' | 'bans' | 'approvals' | null = null;
+
+      if (actionLabel.includes('remove')) {
+        field = 'removes';
+      } else if (actionLabel.includes('ban')) {
+        field = 'bans';
+      } else if (actionLabel.includes('approve')) {
+        field = 'approvals';
+      }
+
+      if (!field) {
+        return;
+      }
+
+      const entry = totalsByMod.get(modName) ?? {
+        removes: 0,
+        bans: 0,
+        approvals: 0,
+        total: 0,
+      };
+
+      entry[field] += 1;
+      entry.total += 1;
+      totalsByMod.set(modName, entry);
+    });
+
+    const tableLines = [
+      '| Moderator | Removes | Bans | Approvals | Total |',
+      '|-----------|---------|------|-----------|-------|',
+      ...Array.from(totalsByMod.entries()).map(([modName, totals]) =>
+        `| u/${modName} | ${totals.removes} | ${totals.bans} | ${totals.approvals} | ${totals.total} |`
+      ),
+    ];
+    const table = tableLines.join('\n');
+
+    let aiSummary = '';
+    if (settings.useAI && settings.apiKey) {
+      try {
+        const prompt =
+          "You are a Reddit mod digest assistant. Write a short 2-3 sentence friendly summary of this week's mod activity for the subreddit community: " +
+          table;
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${settings.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 200,
+          }),
+        });
+
+        const data = await response.json();
+        const content = data?.choices?.[0]?.message?.content;
+        if (typeof content === 'string' && content.trim()) {
+          aiSummary = content.trim();
+        }
+      } catch (err) {
+        console.error('Mod digest AI summary error:', err);
+      }
+    }
+
+    const weekEnding = new Date().toLocaleDateString();
+    const bodyParts = [
+      `## ${settings.postTitle}`,
+      `Week ending: ${weekEnding}`,
+      ...(aiSummary ? [aiSummary] : []),
+      table,
+      '---',
+      '> 🤖 Generated automatically by RedLex every Monday.',
+    ];
+
+    await reddit.submitPost({
+      subredditName,
+      title: settings.postTitle,
+      text: bodyParts.join('\n\n'),
+    });
+
+    await redis.del(`modActions:${subredditName}`);
+  } catch (err) {
+    console.error('Generate mod digest post error:', err);
+  }
+}
 
 forms.post('/add-strike-submit', async (c) => {
   {
@@ -680,6 +811,80 @@ forms.post('/setup-digest-submit', async (c) => {
   } catch (err) {
     console.error('Setup digest error:', err);
     return c.json<UiResponse>({ showToast: '❌ Failed to save digest settings.' }, 200);
+  }
+  }
+});
+
+forms.post('/configure-mod-digest-submit', async (c) => {
+  {
+  const configureModDigestValues = await c.req.json<{
+    configureModDigestEnabled?: boolean | string | string[];
+    configureModDigestTitle?: string;
+    configureModDigestUseAI?: boolean | string | string[];
+    configureModDigestApiKey?: string;
+  }>();
+
+  try {
+    const configureModDigestSubreddit = await reddit.getCurrentSubreddit();
+    const configureModDigestEnabledRaw = Array.isArray(
+      configureModDigestValues.configureModDigestEnabled
+    )
+      ? configureModDigestValues.configureModDigestEnabled[0]
+      : configureModDigestValues.configureModDigestEnabled;
+    const configureModDigestUseAIRaw = Array.isArray(
+      configureModDigestValues.configureModDigestUseAI
+    )
+      ? configureModDigestValues.configureModDigestUseAI[0]
+      : configureModDigestValues.configureModDigestUseAI;
+
+    const configureModDigestSettings: ModDigestSettings = {
+      enabled: configureModDigestEnabledRaw === true || configureModDigestEnabledRaw === 'true',
+      postTitle:
+        configureModDigestValues.configureModDigestTitle ??
+        '📊 RedLex — Weekly Mod Digest',
+      useAI: configureModDigestUseAIRaw === true || configureModDigestUseAIRaw === 'true',
+      apiKey: (configureModDigestValues.configureModDigestApiKey ?? '').trim(),
+    };
+
+    await redis.set(
+      `digestSettings:${configureModDigestSubreddit.name}`,
+      JSON.stringify(configureModDigestSettings)
+    );
+
+    return c.json<UiResponse>({ showToast: 'Mod digest configured' }, 200);
+  } catch (err) {
+    console.error('Configure mod digest error:', err);
+    return c.json<UiResponse>({ showToast: '❌ Failed to save digest settings.' }, 200);
+  }
+  }
+});
+
+forms.post('/generate-mod-digest-now-submit', async (req) => {
+  {
+  const generateModDigestNowValues = await req.req.json<{
+    generateModDigestNowConfirm?: boolean | string | string[];
+  }>();
+
+  const generateModDigestNowConfirmRaw = Array.isArray(
+    generateModDigestNowValues.generateModDigestNowConfirm
+  )
+    ? generateModDigestNowValues.generateModDigestNowConfirm[0]
+    : generateModDigestNowValues.generateModDigestNowConfirm;
+
+  const generateModDigestNowConfirmed =
+    generateModDigestNowConfirmRaw === true || generateModDigestNowConfirmRaw === 'true';
+
+  if (!generateModDigestNowConfirmed) {
+    return req.json<UiResponse>({ showToast: 'Cancelled' }, 200);
+  }
+
+  try {
+    const generateModDigestNowSubreddit = await reddit.getCurrentSubreddit();
+    await generateModDigestPost(generateModDigestNowSubreddit.name);
+    return req.json<UiResponse>({ showToast: 'Mod digest posted' }, 200);
+  } catch (err) {
+    console.error('Generate mod digest now error:', err);
+    return req.json<UiResponse>({ showToast: '❌ Failed to generate mod digest.' }, 200);
   }
   }
 });

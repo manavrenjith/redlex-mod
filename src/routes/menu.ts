@@ -575,6 +575,73 @@ menu.post('/setup-digest', async (c) => {
   );
 });
 
+menu.post('/configure-mod-digest', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'configureModDigest',
+        form: {
+          title: '📊 Configure Mod Digest',
+          acceptLabel: 'Save',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'configureModDigestEnabled',
+              label: 'Enable weekly mod digest (posts every Monday 9AM)',
+              type: 'boolean' as const,
+              defaultValue: true,
+            },
+            {
+              name: 'configureModDigestTitle',
+              label: 'Post title',
+              type: 'string' as const,
+              required: true,
+              defaultValue: '📊 RedLex — Weekly Mod Digest',
+            },
+            {
+              name: 'configureModDigestUseAI',
+              label: 'Use AI summary (OpenAI GPT-3.5)',
+              type: 'boolean' as const,
+              defaultValue: false,
+            },
+            {
+              name: 'configureModDigestApiKey',
+              label: 'OpenAI API key (required if AI mode enabled)',
+              type: 'string' as const,
+              required: false,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+menu.post('/generate-mod-digest-now', async (c) => {
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'generateModDigestNow',
+        form: {
+          title: '📊 Generate Mod Digest Now',
+          acceptLabel: 'Generate',
+          cancelLabel: 'Cancel',
+          fields: [
+            {
+              name: 'generateModDigestNowConfirm',
+              label: 'Generate and post the mod digest now?',
+              type: 'boolean' as const,
+              defaultValue: true,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
 menu.post('/generate-digest-now', async (c) => {
   return c.json<UiResponse>(
     {

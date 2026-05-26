@@ -107,6 +107,18 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/generate-digest-now"
+      },
+      {
+        "label": "📊 Configure Mod Digest",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/configure-mod-digest"
+      },
+      {
+        "label": "📊 Generate Digest Now",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/generate-mod-digest-now"
       }
     ]
   },
@@ -128,7 +140,9 @@
     "viewMilestones": "/internal/form/view-milestones-submit",
     "viewMilestonesResult": "/internal/form/view-milestones-result-noop",
     "setupDigest": "/internal/form/setup-digest-submit",
-    "generateDigestNow": "/internal/form/generate-digest-now-submit"
+    "generateDigestNow": "/internal/form/generate-digest-now-submit",
+    "configureModDigest": "/internal/form/configure-mod-digest",
+    "generateModDigestNow": "/internal/form/generate-mod-digest-now-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

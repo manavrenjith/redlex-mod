@@ -17,6 +17,7 @@ import {
   saveCelebratedMilestone,
   saveLogEntry,
 } from '../routes/api';
+import { generateModDigestPost } from '../routes/forms';
 
 // ─── Local type: actual shape of event.action at runtime ─────────────────────
 type ModActionPayload = {
@@ -289,6 +290,29 @@ triggers.post('/scheduler/weekly-digest', async (c) => {
     console.log(`Weekly digest posted for r/${subredditName}.`);
   } catch (err) {
     console.error('Weekly digest scheduler error:', err);
+  }
+
+  return c.json<TaskResponse>({ status: 'ok' }, 200);
+});
+
+triggers.post('/internal/scheduler/weekly-mod-digest', async (c) => {
+  try {
+    const input = await c.req.json<{ context?: { subredditName?: string } }>();
+    const subredditName = input.context?.subredditName ?? '';
+
+    if (!subredditName) {
+      return c.json<TaskResponse>({ status: 'ok' }, 200);
+    }
+
+    const rawSettings = await redis.get(`digestSettings:${subredditName}`);
+    const settings = rawSettings ? JSON.parse(rawSettings) : null;
+    if (settings?.enabled === false) {
+      return c.json<TaskResponse>({ status: 'ok' }, 200);
+    }
+
+    await generateModDigestPost(subredditName);
+  } catch (err) {
+    console.error('Weekly mod digest scheduler error:', err);
   }
 
   return c.json<TaskResponse>({ status: 'ok' }, 200);
