@@ -363,7 +363,11 @@ forms.post('/resolve-shift-note-submit', async (c) => {
 
 forms.post('/create-log-post-submit', async (c) => {
   {
-  const logValues = await c.req.json<{ title?: string }>();
+  const logValues = await c.req.json<{
+    title?: string;
+    createLogPostRetentionDays?: number;
+    createLogPostClearLog?: boolean;
+  }>();
   const logTitle = logValues.title ?? '📋 RedLex — Mod Action Log';
 
   try {
@@ -376,6 +380,18 @@ forms.post('/create-log-post-submit', async (c) => {
 
     const logKey = `logPostId:${logSubreddit.name}`;
     await redis.set(logKey, logPost.id);
+
+    const retentionDays =
+      typeof logValues.createLogPostRetentionDays === 'number'
+        ? logValues.createLogPostRetentionDays
+        : 30;
+    await redis.set(
+      `logSettings:${logSubreddit.name}`,
+      JSON.stringify({ retentionDays })
+    );
+    if (logValues.createLogPostClearLog === true) {
+      await redis.del(`transparencyLog:${logSubreddit.name}`);
+    }
 
     return c.json<UiResponse>({ showToast: '✅ Transparency log post created!' }, 200);
   } catch (err) {

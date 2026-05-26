@@ -90,19 +90,25 @@ triggers.post('/on-app-install', async (c) => {
 triggers.post('/on-mod-action', async (c) => {
   const input = await c.req.json<OnModActionRequest>();
 
-  // Cast event.action to our local type — Devvit types it as string but
-  // the actual runtime payload is an object.
-  const modAction = input.action as unknown as ModActionPayload;
+  // The event is FLAT — action/moderator/targetPost are all top-level fields.
+  // input.action is just the action string e.g. "removelink", NOT an object.
+  const ev = input as unknown as {
+    action?: string;
+    moderator?: { name?: string; id?: string };
+    targetPost?: { id?: string; authorName?: string; title?: string };
+    details?: string;
+    subreddit?: { name?: string };
+  };
 
-  console.log('DEBUG MOD:', JSON.stringify(modAction?.moderator));
-  console.log('DEBUG FULL EVENT:', JSON.stringify(input));
-
-  const rawAction = modAction?.action ?? modAction?.type ?? '';
+  const rawAction = ev.action ?? '';
   const actionLabel = getActionLabel(rawAction);
-  const subredditName = input.subreddit?.name;
+  const subredditName = ev.subreddit?.name ?? input.subreddit?.name;
+
+  console.log('DEBUG MOD:', JSON.stringify(ev.moderator));
+  console.log('DEBUG ACTION:', rawAction);
 
   // ── Rule Explainer DM ────────────────────────────────────────────────────
-  if ((rawAction === 'removelink' || modAction?.type === 'removelink') && subredditName) {
+  if (rawAction === 'removelink' && subredditName) {
     try {
       const ruleExplainerKey = `ruleExplainerSettings:${subredditName}`;
       const ruleExplainerRaw = await redis.get(ruleExplainerKey);
@@ -111,16 +117,13 @@ triggers.post('/on-mod-action', async (c) => {
         : null;
 
       if (ruleExplainerSettings?.enabled) {
-        const details =
-          typeof modAction?.details === 'string'
-            ? modAction.details.toLowerCase()
-            : '';
+        const details = (ev.details ?? '').toLowerCase();
         const matchedRule = ruleExplainerSettings.rules.find((rule) =>
           details.includes(rule.keyword.toLowerCase())
         );
 
-        if (matchedRule && modAction?.targetId) {
-          const post = await reddit.getPostById(modAction.targetId as T3);
+        if (matchedRule && ev.targetPost?.id) {
+          const post = await reddit.getPostById(ev.targetPost.id as T3);
           const authorName = post.authorName ?? '';
           const postTitle = post.title ?? '';
 
@@ -145,8 +148,8 @@ triggers.post('/on-mod-action', async (c) => {
   // ── Transparency Log ─────────────────────────────────────────────────────
   if (subredditName) {
     const moderatorName =
-      modAction?.moderator?.name ??
-      modAction?.moderator?.id ??
+      ev.moderator?.name ??
+      ev.moderator?.id ??
       'unknown';
 
     await saveLogEntry(subredditName, {
@@ -160,8 +163,22 @@ triggers.post('/on-mod-action', async (c) => {
     if (logPostId) {
       const entries = await getLogEntries(subredditName);
 
+      const logSettingsRaw = await redis.get(`logSettings:${subredditName}`);
+      const logSettings = logSettingsRaw
+        ? JSON.parse(logSettingsRaw)
+        : { retentionDays: 30 };
+      const retentionDays: number = logSettings.retentionDays ?? 30;
+      const filteredEntries = retentionDays === 0
+        ? entries
+        : entries.filter((entry) => {
+            if (!entry.createdAt) return true;
+            const ageDays =
+              (Date.now() - new Date(entry.createdAt).getTime()) / 86400000;
+            return ageDays <= retentionDays;
+          });
+
       const lines: string[] = [];
-      entries.slice(-30).forEach((entry) => {
+      filteredEntries.slice(-30).forEach((entry) => {
         const date = entry.createdAt
           ? new Date(entry.createdAt).toLocaleDateString('en-US', {
               month: 'short',
